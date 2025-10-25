@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理端 (Admin Portal) - Vue.js 版</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app">
+        <div class="portal-container">
+            <nav class="sidebar">
+                <h2>管理端</h2>
+                <ul class="sidebar-nav">
+                    <li v-for="item in navItems"
+                        :key="item.id"
+                        :class="{ active: activePage === item.id }"
+                        @click="activePage = item.id">
+                        {{ item.name }}
+                    </li>
+                </ul>
+                <div class="sidebar-footer">
+                    <a href="public.html" class="logout-link">
+                        &#8592; 登出 (Log Out)
+                    </a>
+                </div>
+            </nav>
+
+            <main class="main-content">
+                
+                <div v-if="activePage === 'dashboard'" class="page">
+                    <h1>仪表盘</h1>
+                    <div class="card">
+                        <h3>系统状态</h3>
+                        <p>总用户数: 150</p>
+                        <p>活跃学生: 100</p>
+                        <p>教职工: 50</p>
+                        <p>待处理的系统级审批: 5</p>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'users'" class="page">
+                    <h1>用户管理 (Users)</h1>
+                    <div class="card">
+                        <h3>管理用户</h3>
+                        <p>在这里添加、删除或编辑用户信息。</p>
+                        <button class="btn btn-primary">添加新用户</button>
+                        </div>
+                </div>
+
+                <div v-else-if="activePage === 'workflows'" class="page">
+                    <h1>流程管理 (Workflows)</h1>
+                    <div class="card">
+                        <h3>审批流程</h3>
+                        <p>管理 "学习计划"、"委员会组建" 等的审批流程。</p>
+                        <p><strong>当前流程:</strong> 学习计划 -> 导师批准 -> 研究生院批准</p>
+                        <button class="btn btn-primary">编辑流程</button>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'migration'" class="page">
+                    <h1>数据迁移 (Migration)</h1>
+                    <div class="card">
+                        <h3>数据库迁移</h3>
+                        <p>管理数据库版本和迁移历史。</p>
+                        <button class="btn btn-danger">执行新迁移</button>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'reports'" class="page">
+                    <h1>报告 (Reports)</h1>
+                    <div class="card">
+                        <h3>生成报告</h3>
+                        <p>生成关于学生进度、毕业率等的报告。</p>
+                        <button class="btn btn-submit">生成年度报告</button>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'compliance'" class="page">
+                    <h1>合规性 (Compliance)</h1>
+                    <div class="card">
+                        <h3>合规性检查</h3>
+                        <p>检查所有学生是否满足毕业要求。</p>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'settings'" class="page">
+                    <h1>系统设置 (Settings)</h1>
+                    <div class="card">
+                        <h3>设置</h3>
+                        <p>系统邮件、截止日期等全局设置。</p>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                // 初始页面设置为 'dashboard'
+                const activePage = ref('dashboard');
+
+                // 导航栏数据: 对应 "Admin" 分支
+                const navItems = ref([
+                    { id: 'dashboard', name: '仪表盘 (Dashboard)' },
+                    { id: 'users', name: '用户管理 (Users)' },
+                    { id: 'workflows', name: '流程管理 (Workflows)' },
+                    { id: 'migration', name: '数据迁移 (Migration)' },
+                    { id: 'reports', name: '报告 (Reports)' },
+                    { id: 'compliance', name: '合规性 (Compliance)' },
+                    { id: 'settings', name: '系统设置 (Settings)' }
+                ]);
+
+                return {
+                    activePage,
+                    navItems
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+</html>

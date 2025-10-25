@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导师端 (Faculty Portal) - Vue.js 版</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app">
+        <div class="portal-container">
+            <nav class="sidebar">
+                <h2>导师端</h2>
+                <ul class="sidebar-nav">
+                    <li v-for="item in navItems"
+                        :key="item.id"
+                        :class="{ active: activePage === item.id }"
+                        @click="activePage = item.id">
+                        {{ item.name }}
+                    </li>
+                </ul>
+                <div class="sidebar-footer">
+                    <a href="public.html" class="logout-link">
+                        &#8592; 登出 (Log Out)
+                    </a>
+                </div>
+            </nav>
+
+            <main class="main-content">
+                
+                <div v-if="activePage === 'dashboard'" class="page">
+                    <h1>仪表盘</h1>
+                    <div class="card">
+                        <h3>快速提醒</h3>
+                        <p>您有 <strong>3</strong> 个待处理的审批。</p>
+                        <p>学生 <strong>张三</strong> 已提交年度评估。</p>
+                    </div>
+                    <div class="card">
+                        <h3>我的学生 (Advisees) 总体状态</h3>
+                        <p>李四: 进度正常</p>
+                        <p>王五: 缺少学习计划</p>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'advisee-progress'" class="page">
+                    <h1>学生进度</h1>
+                    <div class="card">
+                        <h3>张三</h3>
+                        <p><strong>状态:</strong> 进度正常</p>
+                        <ul>
+                            <li>✔ 已选择导师</li>
+                            <li>✔ 已组建委员会</li>
+                            <li>✘ 待提交学习计划</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>李四</h3>
+                        <p><strong>状态:</strong> <span style="color: red;">需要关注</span></p>
+                        <ul>
+                            <li>✔ 已选择导师</li>
+                            <li>✘ 待组建委员会</li>
+                            <li>✘ 待提交学习计划</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'approval-requests'" class="page">
+                    <h1>审批请求</h1>
+                    <div class="card">
+                        <h3>张三: 提交了 "学习计划"</h3>
+                        <p>提交时间: 2025-10-20</p>
+                        <a href="#" class="btn btn-primary">查看文档</a>
+                        <button class="btn btn-primary">批准</button>
+                        <button class="btn btn-danger">拒绝</button>
+                    </div>
+                    <div class="card">
+                        <h3>王五: S提交了 "委员会组建申请"</h3>
+                        <p>提交时间: 2025-10-19</p>
+                        <a href="#" class="btn btn-primary">查看详情</a>
+                        <button class="btn btn-primary">批准</button>
+                        <button class="btn btn-danger">拒绝</button>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'evaluation-reports'" class="page">
+                    <h1>评估报告</h1>
+                    <div class="card">
+                        <h3>填写年度评估报告</h3>
+                        <form>
+                            <div class="form-group">
+                                <label for="student-select">选择学生:</label>
+                                <select id="student-select" name="student">
+                                    <option value="zhangsan">张三</option>
+                                    <option value="lisi">李四</option>
+                                    <option value="wangwu">王五</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="evaluation-text">评估内容:</label>
+                                <textarea id="evaluation-text" name="evaluation" rows="8" placeholder="填写对该学生的年度评估..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="student-rating">总体评价:</label>
+                                <select id="student-rating" name="rating">
+                                    <option value="excellent">优秀</option>
+                                    <option value="good">良好</option>
+                                    <option value="satisfactory">合格</option>
+                                    <option value="fail">不合格</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-submit">提交报告</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'notifications'" class="page">
+                    <h1>通知</h1>
+                    <div class="card">
+                        <p><strong>[待批复]</strong> 张三 提交了 "学习计划"。 (1 小时前)</p>
+                    </div>
+                    <div class="card">
+                        <p><strong>[学生提交]</strong> 李四 更新了他的个人资料。 (5 小时前)</p>
+                    </div>
+                    <div class="card">
+                        <p><strong>[系统提醒]</strong> "王五" 的年度评估即将到期。 (1 天前)</p>
+                    </div>
+                    <div v-else-if="activePage === 'notifications'" class="page">
+                    <h1>通知</h1>
+
+                    <div v-if="true" class="empty-state">
+                        <span class="empty-state-icon">&#128524;</span>
+                        您目前没有新的通知。
+                    </div>
+
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'profile-settings'" class="page">
+                    <h1>个人设置</h1>
+                    <div class="card">
+                        <h3>修改个人信息</h3>
+                        <form>
+                            <div class="form-group">
+                                <label for="prof-name">姓名:</label>
+                                <input type="text" id="prof-name" value="教师姓名">
+                            </div>
+                            <div class="form-group">
+                                <label for="prof-email">邮箱:</label>
+                                <input type="email" id="prof-email" value="faculty@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="prof-signature">电子签名认证:</label>
+                                <input type="file" id="prof-signature">
+                                <p><small>上传您的电子签名以用于快速审批。</small></p>
+                            </div>
+                            <button type="submit" class="btn btn-submit">保存更改</button>
+                        </form>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                // --- 状态 ---
+                // ref() 使变量具有响应性。
+                // 初始页面设置为 'dashboard'
+                const activePage = ref('dashboard');
+
+                // --- 数据 ---
+                // 导航栏的数据
+                const navItems = ref([
+                    { id: 'dashboard', name: '仪表盘 (Dashboard)' },
+                    { id: 'advisee-progress', name: '学生进度 (Advisee Progress)' },
+                    { id: 'approval-requests', name: '审批请求 (Approval Requests)' },
+                    { id: 'evaluation-reports', name: '评估报告 (Evaluation Reports)' },
+                    { id: 'notifications', name: '通知 (Notifications)' },
+                    { id: 'profile-settings', name: '个人设置 (Profile Settings)' }
+                ]);
+
+                // setup 函数必须返回模板中需要用到的所有变量和函数
+                return {
+                    activePage,
+                    navItems
+                };
+            }
+        }).mount('#app'); // 将 Vue 应用挂载到 ID 为 "app" 的 DOM 元素上
+    </script>
+
+</body>
+</html>

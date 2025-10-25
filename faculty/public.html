@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公共页面 (Public Portal) - Vue.js 版</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app">
+        <div class="portal-container">
+            <nav class="sidebar">
+                <h2>研究生院</h2>
+                <ul class="sidebar-nav">
+                    <li v-for="item in navItems"
+                        :key="item.id"
+                        :class="{ active: activePage === item.id }"
+                        @click="activePage = item.id">
+                        {{ item.name }}
+                    </li>
+                </ul>
+            </nav>
+
+            <main class="main-content">
+                
+                <div v-if="activePage === 'home'" class="page">
+                    <h1>欢迎访问研究生院门户</h1>
+                    <div class="card">
+                        <h3>通知公告</h3>
+                        <p>2025年秋季学期毕业论文提交截止日期为 12月1日。</p>
+                    </div>
+                </div>
+
+               <div v-else-if="activePage === 'login'" class="page">
+                    <h1>登录</h1>
+                    <div class="card">
+                        <h3>系统登录</h3>
+                        <p v-if="loginError" style="color: #e74c3c; text-align: center; margin-bottom: 15px;">
+                            {{ loginError }}
+                        </p>
+                        <form @submit.prevent="handleLogin">
+                            <div class="form-group">
+                                <label for="username">用户名:</label>
+                                <input type="text" id="username" placeholder="学生ID / 教工ID" v-model="username">
+                            </div>
+                            <div class="form-group">
+                                <label for="password">密码:</label>
+                                <input type="password" id="password" v-model="password">
+                            </div>
+                            
+                            
+                            
+                            <button type="submit" class="btn btn-submit">登录</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'help'" class="page">
+                    <h1>帮助中心 (Help)</h1>
+                    <div class="card">
+                        <h3>常见问题 (FAQ)</h3>
+                        <p><strong>问:</strong> 如何提交学习计划?</p>
+                        <p><strong>答:</strong> 登录学生端，点击 "学习计划"，上传文档并提交。</p>
+                        <p><strong>问:</strong> 忘记密码怎么办?</p>
+                        <p><strong>答:</strong> ...</p>
+                    </div>
+                </div>
+
+                <div v-else-if="activePage === 'contact'" class="page">
+                    <h1>联系我们 (Contact)</h1>
+                    <div class="card">
+                        <h3>联系信息</h3>
+                        <p>如果您遇到技术问题，请联系 IT 部门: ...</p>
+                        <p>学术问题请联系研究生院办公室: ...</p>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                // --- 页面导航状态 ---
+                const activePage = ref('home');
+
+                // 导航栏数据
+                const navItems = ref([
+                    { id: 'home', name: '首页 (Home)' },
+                    { id: 'login', name: '登录 (Login)' },
+                    { id: 'help', name: '帮助 (Help)' },
+                    { id: 'contact', name: '联系我们 (Contact)' }
+                ]);
+
+                // --- 登录表单的数据绑定 ---
+                const username = ref('');
+                const password = ref('');
+                // const role = ref('student'); // <-- 已移除：不再需要
+                
+                // --- 用于在页面上显示错误信息 ---
+                const loginError = ref('');
+
+                // --- 登录处理函数 (已更新逻辑) ---
+                function handleLogin() {
+                    
+                    // 每次尝试登录时，先清除旧的错误信息
+                    loginError.value = '';
+                    
+                    // 移除 const usernameLower = ... (因为您要求区分大小写)
+
+                    // 模拟学生登录 (不再检查 role.value)
+                    if (username.value === 'student' && password.value === '123') {
+                        window.location.href = 'student.html'; 
+                    } 
+                    // 模拟导师登录 (不再检查 role.value)
+                    else if (username.value === 'faculty' && password.value === '123') {
+                        window.location.href = 'faculty_portal.html';
+                    } 
+                    // 模拟管理员登录 (不再检查 role.value)
+                    else if (username.value === 'admin' && password.value === '123') {
+                        window.location.href = 'admin.html';
+                    } 
+                    // 登录失败
+                    else {
+                        loginError.value = '账号或密码不对';
+                        username.value = '';
+                        password.value = '';
+                    }
+                }
+
+                // 返回所有需要给 HTML 使用的变量和函数
+                return {
+                    activePage,
+                    navItems,
+                    username,
+                    password,
+                    // role, // <-- 已移除
+                    loginError,
+                    handleLogin
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
