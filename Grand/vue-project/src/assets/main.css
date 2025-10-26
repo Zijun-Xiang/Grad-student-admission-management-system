@@ -36,6 +36,12 @@ body, html {
     margin: 0;
 }
 
+.sidebar-nav a {
+    color: #ecf0f1;
+    text-decoration: none;
+}
+
+
 .sidebar-nav li {
     padding: 15px 20px;
     cursor: pointer;
