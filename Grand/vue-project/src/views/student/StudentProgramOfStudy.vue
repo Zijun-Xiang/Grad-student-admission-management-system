@@ -48,9 +48,3 @@ function handleFileUpload(event) {
   </div>
 </template>
 
-<style scoped>
-/* 我们给自制的按钮添加一个 'cursor: pointer' 样式，
-  让它在鼠标悬停时显示“小手”图标，更像一个按钮。
-  不过，我已将它内联写在了上面的 <label> 中。
-*/
-</style>
