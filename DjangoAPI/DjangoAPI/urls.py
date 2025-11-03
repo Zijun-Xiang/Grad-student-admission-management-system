@@ -23,5 +23,6 @@ urlpatterns = [
     path('api/', include('EmployeeApp.urls')),
     path('', lambda request: HttpResponse("Django API is running. Try /api/employee/ or /admin/")),
 
-    path('api/admin/', include('admin_app.urls')),
+    path('api/admin/', include('adminpanel.urls')),
 ]
+

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'adminpanel',
     'EmployeeApp.apps.EmployeeappConfig'
 ]
 
@@ -92,7 +93,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "studentdb",
         "USER": "root",
-        "PASSWORD": "123123",
+        "PASSWORD": "Lqw84441669.",
         "HOST": "127.0.0.1",
         "PORT": "3306",
     }
