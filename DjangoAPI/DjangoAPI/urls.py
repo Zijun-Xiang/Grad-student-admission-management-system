@@ -20,7 +20,7 @@ from django.urls import path, re_path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('EmployeeApp.urls')),
+    #path('api/', include('EmployeeApp.urls')),
     path('', lambda request: HttpResponse("Django API is running. Try /api/employee/ or /admin/")),
 
     path('api/admin/', include('adminpanel.urls')),

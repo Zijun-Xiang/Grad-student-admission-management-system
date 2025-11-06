@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'adminpanel',
-    'EmployeeApp.apps.EmployeeappConfig'
+    #'EmployeeApp.apps.EmployeeappConfig'
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -93,7 +93,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "studentdb",
         "USER": "root",
-        "PASSWORD": "Lqw84441669.",
+        "PASSWORD": "123123",
         "HOST": "127.0.0.1",
         "PORT": "3306",
     }

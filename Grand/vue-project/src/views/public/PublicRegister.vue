@@ -82,7 +82,7 @@ function handleRegister() {
 
       <p style="margin-top: 10px; text-align: center;">
         Already have an account?
-        <a href="#/public/login">Login here</a>
+        <a href="/login">Login here</a>
       </p>
     </div>
   </div>

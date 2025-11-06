@@ -11,7 +11,7 @@ router.register('workflows', WorkflowViewSet)
 router.register('reports', ReportViewSet)
 router.register('compliance', ComplianceViewSet)
 router.register('settings', SystemSettingViewSet)
-router.register('persons', PersonViewSet)  # 👈 新增
+router.register('persons', PersonViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
