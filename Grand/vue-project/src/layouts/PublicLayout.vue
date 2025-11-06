@@ -6,6 +6,7 @@ import { ref } from 'vue'
 const navItems = ref([
     { id: 'home', name: 'Home', path: '/home' },
     { id: 'login', name: 'Login', path: '/login' },
+    { id: 'register', name: 'Register', path: '/register' },
     { id: 'help', name: 'Help', path: '/help' },
     { id: 'contact', name: 'Contact Us', path: '/contact' }
 ]);

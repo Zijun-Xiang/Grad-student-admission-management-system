@@ -89,7 +89,7 @@ const API_URL = 'http://127.0.0.1:8000/api/admin/persons/'
 // 获取所有用户
 const fetchUsers = async () => {
   try {
-    const res = await axios.get(API_URL)
+    const res = await axios.egt(API_URL)
     persons.value = res.data
   } catch (err) {
     console.error('Error fetching users:', err)

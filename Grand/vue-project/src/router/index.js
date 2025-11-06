@@ -37,6 +37,7 @@ const StudentProfile = () => import('@/views/student/StudentProfile.vue')
 // --- Public ---
 const PublicHome = () => import('@/views/public/PublicHome.vue')
 const PublicLogin = () => import('@/views/public/PublicLogin.vue')
+const PublicRegister = () => import('@/views/public/PublicRegister.vue')
 const PublicHelp = () => import('@/views/public/PublicHelp.vue')
 const PublicContact = () => import('@/views/public/PublicContact.vue')
 
@@ -52,6 +53,7 @@ const router = createRouter({
       children: [
         { path: 'home', component: PublicHome },
         { path: 'login', component: PublicLogin },
+        { path: 'register', component: PublicRegister },
         { path: 'help', component: PublicHelp },
         { path: 'contact', component: PublicContact }
       ]
