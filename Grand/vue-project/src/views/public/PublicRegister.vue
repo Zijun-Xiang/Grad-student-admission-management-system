@@ -68,15 +68,6 @@ function handleRegister() {
           <input type="password" id="confirm-password" v-model="confirmPassword">
         </div>
 
-        <div class="form-group">
-          <label for="role">Role:</label>
-          <select id="role" v-model="role">
-            <option value="student">Student</option>
-            <option value="faculty">Faculty</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-
         <button type="submit" class="btn btn-submit">Register</button>
       </form>
 
