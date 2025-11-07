@@ -43,3 +43,24 @@ class SystemSettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemSetting
         fields = '__all__'
+
+class RegisterSerializer(serializers.Serializer):
+    user_id = serializers.CharField()
+    password = serializers.CharField()
+
+    def validate(self, data):
+        user_id = data.get("user_id")
+        password = data.get("password")
+
+        # 检查 user 是否存在
+        try:
+            user = Person.objects.get(user_id=user_id)
+        except Person.DoesNotExist:
+            raise serializers.ValidationError("User ID not found.")
+
+        # 不能重复注册
+        if user.password != "#":
+            raise serializers.ValidationError("This account has already been registered.")
+
+        data["person"] = user
+        return data

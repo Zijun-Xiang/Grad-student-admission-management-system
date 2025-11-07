@@ -44,7 +44,9 @@
             <th>Name</th>
             <th>Department</th>
             <th>Identity</th>
+            <th>Password</th>
             <th>Actions</th>
+            
           </tr>
         </thead>
         <tbody>
@@ -53,6 +55,7 @@
             <td>{{ p.name }}</td>
             <td>{{ p.department }}</td>
             <td>{{ p.identity }}</td>
+            <td>{{ p.password }}</td>
             <td>
               <button class="edit" @click="editUser(p)">Edit</button>
               <button class="delete" @click="deleteUser(p.id)">Delete</button>

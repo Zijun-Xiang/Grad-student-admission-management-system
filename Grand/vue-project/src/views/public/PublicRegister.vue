@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from "axios"
 
 const router = useRouter()
 
@@ -10,6 +11,7 @@ const confirmPassword = ref('')
 const role = ref('student')   // 默认注册学生
 const errorMsg = ref('')
 const successMsg = ref('')
+
 
 function handleRegister() {
   errorMsg.value = ''
@@ -25,6 +27,19 @@ function handleRegister() {
     return
   }
 
+  axios.post('http://127.0.0.1:8000/api/admin/register/', {
+    user_id: username.value,
+    password: password.value
+  })
+  .then(res => {
+    successMsg.value = "Registration successful! Redirecting..."
+    setTimeout(() => {
+      router.push('/public/login')
+    }, 1000)
+  })
+  .catch(err => {
+    errorMsg.value = err.response?.data?.error || "Registration failed."
+  })
   // 模拟注册成功
   successMsg.value = 'Registration successful! Redirecting to login...'
 

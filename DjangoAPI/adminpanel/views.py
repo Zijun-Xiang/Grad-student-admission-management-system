@@ -7,6 +7,31 @@ from .serializers import (
 from django.contrib.auth.models import User
 from django.shortcuts import render
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Person
+from .serializers import RegisterSerializer
+
+
+############Zijun Xiang
+class RegisterView(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.validated_data["person"]
+            new_password = serializer.validated_data["password"]
+
+            # ✅ 设置新密码
+            user.password = new_password
+            user.save()
+
+            return Response({"message": "Registration successful."}, status=status.HTTP_200_OK)
+
+        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+############Zijun Xiang
 
 # 自定义权限（仅管理员）
 class IsAdmin(permissions.BasePermission):

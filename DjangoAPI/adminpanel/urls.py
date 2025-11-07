@@ -12,7 +12,11 @@ router.register('reports', ReportViewSet)
 router.register('compliance', ComplianceViewSet)
 router.register('settings', SystemSettingViewSet)
 router.register('persons', PersonViewSet)  # 👈 新增
+from .views import RegisterView
+
+
 
 urlpatterns = [
     path('', include(router.urls)),
+    path("register/", RegisterView.as_view(), name="register"),
 ]

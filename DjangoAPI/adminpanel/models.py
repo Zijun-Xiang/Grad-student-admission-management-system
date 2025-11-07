@@ -14,6 +14,8 @@ class Person(models.Model):
     name = models.CharField("Name", max_length=100)
     department = models.CharField("Department", max_length=100)
     identity = models.CharField("Identity", max_length=10, choices=IDENTITY_CHOICES, default='Student')
+    # ✅ 新增密码字段（默认 #）
+    password = models.CharField("Password", max_length=128, default="#")  ###########ZX
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
