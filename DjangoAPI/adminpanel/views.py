@@ -1,17 +1,16 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+from django.contrib.auth.models import User
+
 from .models import Workflow, Report, ComplianceItem, SystemSetting, Person
 from .serializers import (
     WorkflowSerializer, ReportSerializer, ComplianceSerializer,
-    SystemSettingSerializer, UserSerializer, PersonSerializer
+    SystemSettingSerializer, UserSerializer, PersonSerializer,
+    RegisterSerializer, LoginSerializer
 )
-from django.contrib.auth.models import User
-from django.shortcuts import render
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Person
-from .serializers import RegisterSerializer
 
 
 ############Zijun Xiang
@@ -28,6 +27,36 @@ class RegisterView(APIView):
             user.save()
 
             return Response({"message": "Registration successful."}, status=status.HTTP_200_OK)
+
+        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+class LoginView(APIView):
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        password = request.data.get("password")
+
+        # 1. 处理固定管理员账号 admin / 123（不查数据库）
+        if user_id == "admin" and password == "123":
+            return Response({
+                "message": "Login successful",
+                "user_id": "admin",
+                "name": "System Administrator",
+                "department": "Admin",
+                "identity": "Admin",   # 前端根据这个跳转
+            }, status=status.HTTP_200_OK)
+
+        # 2. 普通账号 → 使用 LoginSerializer 校验（查数据库）
+        serializer = LoginSerializer(data=request.data)
+
+        if serializer.is_valid():
+            person = serializer.validated_data["person"]
+
+            return Response({
+                "message": "Login successful",
+                "user_id": person.user_id,
+                "name": person.name,
+                "department": person.department,
+                "identity": person.identity,
+            }, status=status.HTTP_200_OK)
 
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
