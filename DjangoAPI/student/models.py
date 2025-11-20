@@ -73,6 +73,28 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification to {self.student.student_id}"
-from django.db import models
 
-# Create your models here.
+
+class ChooseInstructor(models.Model):
+    STATE_PENDING = "pending"
+    STATE_APPROVED = "approved"
+    STATE_REJECTED = "rejected"
+    STATE_CHOICES = [
+        (STATE_PENDING, "pending"),
+        (STATE_APPROVED, "approved"),
+        (STATE_REJECTED, "rejected"),
+    ]
+
+    facultyId = models.IntegerField()
+    facultyName = models.CharField(max_length=255)
+    studentId = models.IntegerField()
+    studentName = models.CharField(max_length=255)
+    file = models.FileField(upload_to="choose_instructor/")
+    studentComment = models.TextField(blank=True)
+    facultyComment = models.TextField(blank=True)
+    state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING)
+    submittedAt = models.DateTimeField(null=True, blank=True)
+    reviewedAt = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.studentName} → {self.facultyName} ({self.state})"

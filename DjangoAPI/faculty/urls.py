@@ -24,4 +24,9 @@ urlpatterns = [
     path('approvals/<int:pk>/', views.ApprovalRequestUpdateView.as_view(), name='approval-update'),
     path('evaluations/', views.EvaluationReportListCreateView.as_view(), name='evaluation'),
     path('notifications/', views.FacultyNotificationListView.as_view(), name='faculty-notifications'),
+    path('choose-instructor/requests/', views.approval_requests_list_view),
+    path('choose-instructor/requests/<int:pk>/', views.approval_request_detail_view),
+    path('choose-instructor/requests/<int:pk>/approve/', views.approve_request_view),
+    path('choose-instructor/requests/<int:pk>/reject/', views.reject_request_view),
+    path('choose-instructor/requests/new-count/', views.new_submission_count_view),
 ]
