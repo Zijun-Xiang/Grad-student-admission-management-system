@@ -1,15 +1,19 @@
 from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from .models import Workflow, Report, ComplianceItem, SystemSetting, Person
 from .serializers import (
     WorkflowSerializer, ReportSerializer, ComplianceSerializer,
     SystemSettingSerializer, UserSerializer, PersonSerializer,
-    RegisterSerializer, LoginSerializer
+    RegisterSerializer, LoginSerializer, ChooseInstructorAdminSerializer
 )
+from student.models import ChooseInstructor
 
 
 
@@ -111,4 +115,61 @@ class SystemSettingViewSet(viewsets.ModelViewSet):
     queryset = SystemSetting.objects.all()
     serializer_class = SystemSettingSerializer
     permission_classes = [IsAdmin]
+
+
+@api_view(["GET"])
+@permission_classes([IsAdmin])
+def choose_instructor_list_view(request):
+    """Admin: list all ChooseInstructor records."""
+    records = ChooseInstructor.objects.all().order_by("-submittedAt")
+    serializer = ChooseInstructorAdminSerializer(records, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
+@permission_classes([IsAdmin])
+def choose_instructor_detail_view(request, pk):
+    """Admin: retrieve, update, or delete a specific ChooseInstructor record."""
+    choose = get_object_or_404(ChooseInstructor, id=pk)
+
+    if request.method == "DELETE":
+        choose.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    if request.method in ["PUT", "PATCH"]:
+        serializer = ChooseInstructorAdminSerializer(
+            choose, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    serializer = ChooseInstructorAdminSerializer(choose)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdmin])
+def choose_instructor_approve_view(request, pk):
+    """Admin: approve any ChooseInstructor record."""
+    choose = get_object_or_404(ChooseInstructor, id=pk)
+    choose.state = ChooseInstructor.STATE_APPROVED
+    choose.facultyComment = request.data.get("facultyComment", "")
+    choose.reviewedAt = timezone.now()
+    choose.save(update_fields=["state", "facultyComment", "reviewedAt"])
+    serializer = ChooseInstructorAdminSerializer(choose)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdmin])
+def choose_instructor_reject_view(request, pk):
+    """Admin: reject any ChooseInstructor record."""
+    choose = get_object_or_404(ChooseInstructor, id=pk)
+    choose.state = ChooseInstructor.STATE_REJECTED
+    choose.facultyComment = request.data.get("facultyComment", "")
+    choose.reviewedAt = timezone.now()
+    choose.save(update_fields=["state", "facultyComment", "reviewedAt"])
+    serializer = ChooseInstructorAdminSerializer(choose)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
