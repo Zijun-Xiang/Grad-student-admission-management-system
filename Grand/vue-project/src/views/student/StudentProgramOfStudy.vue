@@ -1,41 +1,41 @@
 <script setup>
-// 学生提交 Program of Study 的完整流程
 import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
 
-// 下拉导师列表与选择状态
+// --------------------------
+// 状态变量
+// --------------------------
 const facultyList = ref([])
 const selectedFacultyId = ref('')
 
-// 文件与备注
 const fileName = ref('No file chosen')
 const selectedFile = ref(null)
 const studentComment = ref('')
 
-// 状态提示
 const message = ref('')
 const messageType = ref('') // success / error
 
-// 是否已成功上传文件，用于防止未上传就提交
 const fileUploaded = ref(false)
 const submitting = ref(false)
 const uploading = ref(false)
 
-// 提交按钮是否可用
 const canSubmit = computed(() => !!selectedFacultyId.value && fileUploaded.value)
 
-// 拉取导师列表
+// --------------------------
+// 拉取导师列表（使用 admin 端接口）
+// --------------------------
 const loadFaculty = async () => {
   try {
-    const res = await axios.get('/api/student/faculty-list/')
-    facultyList.value = res.data || []
+    const res = await axios.get('/api/admin/faculty-list/')
+    facultyList.value = res.data.faculty || []
   } catch (error) {
     message.value = 'Failed to load faculty list.'
     messageType.value = 'error'
   }
 }
 
-// 选择导师后重置状态
+
+// --------------------------
 const handleFacultySelect = () => {
   message.value = ''
   fileUploaded.value = false
@@ -43,7 +43,7 @@ const handleFacultySelect = () => {
   fileName.value = 'No file chosen'
 }
 
-// 选择文件，仅更新本地变量，不立即提交
+// --------------------------
 const onFileChange = (event) => {
   const file = event.target.files?.[0]
   if (file) {
@@ -57,7 +57,7 @@ const onFileChange = (event) => {
   }
 }
 
-// 上传文件到后端（必须先选择导师并创建记录）
+// --------------------------
 const handleUpload = async () => {
   message.value = ''
   if (!selectedFacultyId.value) {
@@ -74,10 +74,13 @@ const handleUpload = async () => {
   const formData = new FormData()
   formData.append('file', selectedFile.value)
 
+  //关键修复点：必须传 student_id
+  formData.append('student_id', localStorage.getItem('user_id'))
+
   try {
     uploading.value = true
     await axios.post(
-      `/api/student/choose-instructor/${selectedFacultyId.value}/upload-file/`,
+      `/api/admin/choose-instructor/${selectedFacultyId.value}/upload-file/`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     )
@@ -93,7 +96,8 @@ const handleUpload = async () => {
   }
 }
 
-// 最终提交审核
+
+// --------------------------
 const handleSubmit = async () => {
   message.value = ''
   if (!selectedFacultyId.value) {
@@ -110,11 +114,13 @@ const handleSubmit = async () => {
   try {
     submitting.value = true
     await axios.post(
-      `/api/student/choose-instructor/${selectedFacultyId.value}/submit/`,
-      {
-        studentComment: studentComment.value,
-      }
-    )
+  `/api/admin/choose-instructor/${selectedFacultyId.value}/submit/`,
+  { studentComment: studentComment.value,
+     student_id: localStorage.getItem("user_id"),
+
+  }
+)
+
     message.value = 'Submitted for review successfully.'
     messageType.value = 'success'
   } catch (error) {
@@ -133,85 +139,58 @@ onMounted(() => {
 <template>
   <div class="page">
     <h1>Program of Study</h1>
+
     <div class="card">
       <h3>Submit Program of Study</h3>
 
-      <!-- 信息提示 -->
-      <p v-if="message" :class="['alert', messageType === 'error' ? 'alert-error' : 'alert-success']">{{ message }}</p>
+      <p v-if="message" :class="['alert', messageType === 'error' ? 'alert-error' : 'alert-success']">
+        {{ message }}
+      </p>
 
       <form @submit.prevent="handleSubmit">
+
         <div class="form-group">
-          <label for="faculty-select">Choose Advisor:</label>
-          <select id="faculty-select" v-model="selectedFacultyId" @change="handleFacultySelect">
+          <label>Choose Advisor:</label>
+          <select v-model="selectedFacultyId" @change="handleFacultySelect">
             <option value="">Select a faculty</option>
-            <option v-for="faculty in facultyList" :key="faculty.id" :value="faculty.id">
-              {{ faculty.name || faculty.facultyName || faculty.facultyId || faculty.id }}
+            <option v-for="f in facultyList" :key="f.user_id" :value="f.user_id">
+              {{ f.name }} ({{ f.department }})
             </option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Upload Program of Study Document:</label>
-          <div class="upload-row">
-            <label for="pos-file" class="btn btn-primary" style="cursor: pointer;">Choose File</label>
-            <span style="margin-left: 10px;">{{ fileName }}</span>
-          </div>
+
+          <label for="pos-file" class="btn btn-primary">Choose File</label>
+          <span>{{ fileName }}</span>
+
           <input
             type="file"
             id="pos-file"
             @change="onFileChange"
-            style="opacity: 0; position: absolute; z-index: -1; width: 1px; height: 1px;"
+            style="position:absolute;opacity:0;width:1px;height:1px;"
           />
-          <button
-            type="button"
-            class="btn btn-secondary"
-            style="margin-top: 10px;"
-            @click="handleUpload"
-            :disabled="uploading || !selectedFacultyId"
-          >
+
+          <button type="button" class="btn btn-secondary" @click="handleUpload" :disabled="uploading">
             Upload
           </button>
         </div>
 
         <div class="form-group">
-          <label for="pos-comments">Comments:</label>
-          <textarea
-            id="pos-comments"
-            rows="4"
-            placeholder="Comments for your advisor..."
-            v-model="studentComment"
-          ></textarea>
+          <label>Comments:</label>
+          <textarea rows="4" v-model="studentComment"></textarea>
         </div>
 
-        <button type="submit" class="btn btn-submit" :disabled="!canSubmit || submitting">
-          Submit for Review
-        </button>
+        <button class="btn btn-submit" :disabled="!canSubmit">Submit for Review</button>
+
       </form>
     </div>
   </div>
 </template>
 
 <style scoped>
-.alert {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 4px;
-}
-
-.alert-error {
-  background: #fde8e8;
-  color: #c0392b;
-}
-
-.alert-success {
-  background: #e8f8f5;
-  color: #1e8449;
-}
-
-.upload-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.alert { margin-bottom: 12px; padding: 10px; border-radius: 4px; }
+.alert-error { background: #fde8e8; color: #c0392b; }
+.alert-success { background: #e8f8f5; color: #1e8449; }
 </style>
-
