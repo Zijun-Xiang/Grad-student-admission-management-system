@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Workflow, Report, ComplianceItem, SystemSetting, Person
+from student.models import ChooseInstructor
 from django.contrib.auth.models import User
 
 
@@ -42,6 +43,12 @@ class ComplianceSerializer(serializers.ModelSerializer):
 class SystemSettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemSetting
+        fields = '__all__'
+
+
+class ChooseInstructorAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChooseInstructor
         fields = '__all__'
 
 class RegisterSerializer(serializers.Serializer):
