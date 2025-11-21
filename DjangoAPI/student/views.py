@@ -63,17 +63,29 @@ class NotificationListView(generics.ListAPIView):
 @permission_classes([permissions.IsAuthenticated])
 def select_faculty_view(request):
     """Return available faculty list for the student to choose."""
-    faculties = FacultyProfile.objects.all().values("id", "faculty_id", "department", "position")
-    data = [
-        {
-            "id": f["id"],
-            "facultyId": f["faculty_id"],
-            "facultyName": f["faculty_id"],  # 前端可用 faculty_id 或再拉取用户姓名
-            "department": f["department"],
-            "position": f["position"],
-        }
-        for f in faculties
-    ]
+    faculties = (
+        FacultyProfile.objects.select_related("user")
+        .all()
+        .values("id", "faculty_id", "department", "position", "user__first_name", "user__last_name", "user__username")
+    )
+
+    data = []
+    for f in faculties:
+        full_name = (f.get("user__first_name") or "") + " " + (f.get("user__last_name") or "")
+        full_name = full_name.strip() or f.get("user__username") or f["faculty_id"]
+
+        data.append(
+            {
+                # 前端已使用 user_id 作为 value，这里返回 faculty 主键保证兼容
+                "user_id": f["id"],
+                "name": full_name,
+                "department": f["department"],
+                "position": f["position"],
+                # 额外字段便于后端调试
+                "facultyId": f["faculty_id"],
+            }
+        )
+
     return Response(data, status=status.HTTP_200_OK)
 
 

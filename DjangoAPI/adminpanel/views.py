@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
@@ -14,39 +14,34 @@ from .serializers import (
     RegisterSerializer, LoginSerializer, ChooseInstructorAdminSerializer
 )
 from student.models import ChooseInstructor
-
-import mysql.connector
-from DjangoAPI.settings import DATABASES
+from faculty.models import FacultyProfile
 
 
 # ============================
-# Faculty List API（取 MySQL）
+# Faculty List API
 # ============================
 @api_view(['GET'])
 def faculty_list_view(request):
-    try:
-        conn = mysql.connector.connect(
-            host=DATABASES['default']['HOST'],
-            user=DATABASES['default']['USER'],
-            password=DATABASES['default']['PASSWORD'],
-            database=DATABASES['default']['NAME']
+    faculties = (
+        FacultyProfile.objects.select_related("user")
+        .all()
+        .values("id", "faculty_id", "department", "user__first_name", "user__last_name", "user__username")
+    )
+
+    payload = []
+    for f in faculties:
+        full_name = (f.get("user__first_name") or "") + " " + (f.get("user__last_name") or "")
+        full_name = full_name.strip() or f.get("user__username") or f["faculty_id"]
+        payload.append(
+            {
+                "user_id": f["id"],
+                "name": full_name,
+                "department": f["department"],
+                "facultyId": f["faculty_id"],
+            }
         )
-        cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("""
-            SELECT user_id, name, department
-            FROM users
-            WHERE identity = 'Faculty';
-        """)
-        faculty_rows = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        return Response({"success": True, "faculty": faculty_rows}, status=200)
-
-    except Exception as e:
-        return Response({"success": False, "error": str(e)}, status=500)
+    return Response({"success": True, "faculty": payload}, status=200)
 
 
 
@@ -55,32 +50,22 @@ def faculty_list_view(request):
 # ============================
 @api_view(['POST'])
 def upload_file_view(request, pk):
-    """
-    Student uploads Program of Study file.
-    pk = faculty.user_id
-    """
+    """Upload a Program of Study file for an existing ChooseInstructor record."""
 
-    try:
-        student_id = request.data.get("student_id")
-        if not student_id:
-            return Response({"success": False, "message": "Missing student_id"}, status=400)
+    student_id = request.data.get("student_id") or request.POST.get("student_id")
+    if not student_id:
+        return Response({"success": False, "message": "Missing student_id"}, status=400)
 
-        choose, created = ChooseInstructor.objects.get_or_create(
-            student_id=student_id,
-            faculty_id=pk,
-        )
+    choose = get_object_or_404(ChooseInstructor, id=pk, studentId=student_id)
 
-        uploaded_file = request.FILES.get("file")
-        if not uploaded_file:
-            return Response({"success": False, "message": "No file received."}, status=400)
+    uploaded_file = request.FILES.get("file")
+    if not uploaded_file:
+        return Response({"success": False, "message": "No file received."}, status=400)
 
-        choose.document = uploaded_file
-        choose.save()
+    choose.file = uploaded_file
+    choose.save(update_fields=["file"])
 
-        return Response({"success": True, "message": "File uploaded successfully."})
-
-    except Exception as e:
-        return Response({"success": False, "message": str(e)}, status=500)
+    return Response({"success": True, "message": "File uploaded successfully."})
 
 
 
@@ -89,29 +74,23 @@ def upload_file_view(request, pk):
 # ============================
 @api_view(['POST'])
 def submit_pos_view(request, pk):
-    """
-    Student submits Program of Study for review.
-    """
+    """Finalize the submission of a Program of Study for faculty review."""
 
-    try:
-        student_id = request.data.get("student_id")
-        if not student_id:
-            return Response({"success": False, "message": "Missing student_id"}, status=400)
+    student_id = request.data.get("student_id") or request.POST.get("student_id")
+    if not student_id:
+        return Response({"success": False, "message": "Missing student_id"}, status=400)
 
-        choose, created = ChooseInstructor.objects.get_or_create(
-            student_id=student_id,
-            faculty_id=pk,
-        )
+    choose = get_object_or_404(ChooseInstructor, id=pk, studentId=student_id)
 
-        choose.studentComment = request.data.get("studentComment", "")
-        choose.submittedAt = timezone.now()
-        choose.state = ChooseInstructor.STATE_PENDING
-        choose.save()
+    if not choose.file:
+        return Response({"success": False, "message": "Please upload a file before submitting."}, status=400)
 
-        return Response({"success": True, "message": "Submitted for review."})
+    choose.studentComment = request.data.get("studentComment", "")
+    choose.submittedAt = timezone.now()
+    choose.state = ChooseInstructor.STATE_PENDING
+    choose.save(update_fields=["studentComment", "submittedAt", "state"])
 
-    except Exception as e:
-        return Response({"success": False, "message": str(e)}, status=500)
+    return Response({"success": True, "message": "Submitted for review."})
 
 
 
