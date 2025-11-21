@@ -91,14 +91,24 @@ def create_choose_instructor_view(request):
         studentName=student_profile.user.get_full_name() or student_profile.user.username,
         state=ChooseInstructor.STATE_PENDING,
     )
-    return Response({"id": choose.id}, status=status.HTTP_201_CREATED)
+    return Response(
+        {"id": choose.id, "studentId": student_profile.id},
+        status=status.HTTP_201_CREATED,
+    )
 
 
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
 def upload_file_view(request, pk):
     """Upload/replace file for an existing ChooseInstructor record (state unchanged)."""
-    student_profile = get_object_or_404(StudentProfile, user=request.user)
+    student_id = request.data.get("student_id") or request.POST.get("student_id")
+    student_profile = None
+    if student_id:
+        student_profile = get_object_or_404(StudentProfile, id=student_id)
+    else:
+        student_profile = get_object_or_404(StudentProfile, user=request.user)
+        student_id = student_profile.id
+
     choose = get_object_or_404(ChooseInstructor, id=pk, studentId=student_profile.id)
 
     uploaded_file = request.FILES.get("file")
@@ -120,7 +130,14 @@ def submit_for_review_view(request, pk):
     - set submittedAt = now
     - state remains pending
     """
-    student_profile = get_object_or_404(StudentProfile, user=request.user)
+    student_id = request.data.get("student_id") or request.POST.get("student_id")
+    student_profile = None
+    if student_id:
+        student_profile = get_object_or_404(StudentProfile, id=student_id)
+    else:
+        student_profile = get_object_or_404(StudentProfile, user=request.user)
+        student_id = student_profile.id
+
     choose = get_object_or_404(ChooseInstructor, id=pk, studentId=student_profile.id)
 
     if not choose.file:

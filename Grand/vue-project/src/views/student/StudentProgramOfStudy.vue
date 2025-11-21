@@ -6,6 +6,8 @@ import axios from 'axios'
 // 下拉导师列表与选择状态
 const facultyList = ref([])
 const selectedFacultyId = ref('')
+const chooseRequestId = ref(null)
+const studentId = ref(null)
 
 // 文件与备注
 const fileName = ref('No file chosen')
@@ -22,12 +24,14 @@ const submitting = ref(false)
 const uploading = ref(false)
 
 // 提交按钮是否可用
-const canSubmit = computed(() => !!selectedFacultyId.value && fileUploaded.value)
+const canSubmit = computed(
+  () => !!selectedFacultyId.value && !!chooseRequestId.value && fileUploaded.value
+)
 
 // 拉取导师列表
 const loadFaculty = async () => {
   try {
-    const res = await axios.get('/api/student/faculty-list/')
+    const res = await axios.get('/api/student/choose-instructor/faculty/')
     facultyList.value = res.data || []
   } catch (error) {
     message.value = 'Failed to load faculty list.'
@@ -35,12 +39,34 @@ const loadFaculty = async () => {
   }
 }
 
-// 选择导师后重置状态
-const handleFacultySelect = () => {
+const createChooseRequest = async () => {
+  if (!selectedFacultyId.value) return false
+
+  try {
+    const res = await axios.post('/api/student/choose-instructor/create/', {
+      faculty_id: selectedFacultyId.value
+    })
+    chooseRequestId.value = res.data.id
+    studentId.value = res.data.studentId
+    return true
+  } catch (error) {
+    message.value = 'Failed to start request. Please try again.'
+    messageType.value = 'error'
+    return false
+  }
+}
+
+// 选择导师后创建/重置申请记录
+const handleFacultySelect = async () => {
   message.value = ''
   fileUploaded.value = false
   selectedFile.value = null
   fileName.value = 'No file chosen'
+  chooseRequestId.value = null
+
+  if (!selectedFacultyId.value) return
+
+  await createChooseRequest()
 }
 
 // 选择文件，仅更新本地变量，不立即提交
@@ -71,13 +97,22 @@ const handleUpload = async () => {
     return
   }
 
+  // 确保已有申请记录（若因网络原因未创建则补建）
+  if (!chooseRequestId.value) {
+    const created = await createChooseRequest()
+    if (!created) return
+  }
+
   const formData = new FormData()
   formData.append('file', selectedFile.value)
+  if (studentId.value) {
+    formData.append('student_id', studentId.value)
+  }
 
   try {
     uploading.value = true
     await axios.post(
-      `/api/student/choose-instructor/${selectedFacultyId.value}/upload-file/`,
+      `/api/student/choose-instructor/${chooseRequestId.value}/upload-file/`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     )
@@ -107,12 +142,18 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!chooseRequestId.value) {
+    const created = await createChooseRequest()
+    if (!created) return
+  }
+
   try {
     submitting.value = true
     await axios.post(
-      `/api/student/choose-instructor/${selectedFacultyId.value}/submit/`,
+      `/api/student/choose-instructor/${chooseRequestId.value}/submit/`,
       {
         studentComment: studentComment.value,
+        student_id: studentId.value
       }
     )
     message.value = 'Submitted for review successfully.'

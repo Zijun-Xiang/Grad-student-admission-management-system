@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'adminpanel',
+    'student',
+    'faculty',
     #'EmployeeApp.apps.EmployeeappConfig'
 ]
 

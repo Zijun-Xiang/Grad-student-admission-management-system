@@ -17,6 +17,8 @@ from django.contrib import admin
 from django.urls import path
 from django.http import HttpResponse
 from django.urls import path, re_path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,5 +26,10 @@ urlpatterns = [
     path('', lambda request: HttpResponse("Django API is running. Try /api/employee/ or /admin/")),
 
     path('api/admin/', include('adminpanel.urls')),
+    path('api/student/', include('student.urls')),
+    path('api/faculty/', include('faculty.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
