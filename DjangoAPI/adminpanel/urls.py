@@ -37,7 +37,7 @@ urlpatterns = [
     path("login/", LoginView.as_view(), name="login"),
 
     # ===== Student available APIs =====
-    path("faculty-list/", faculty_list_view, name="faculty-list"),
+    path("choose-instructor/faculty/", faculty_list_view, name="faculty-list"),
 
     # Student: Upload POS file
     path('choose-instructor/<int:pk>/upload-file/',
