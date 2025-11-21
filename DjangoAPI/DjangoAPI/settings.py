@@ -47,13 +47,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
 
-    # 你的 app
+    # your apps
     'student',
     'faculty',
     'adminpanel',
-    'student',
-    'faculty',
-    #'EmployeeApp.apps.EmployeeappConfig'
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True

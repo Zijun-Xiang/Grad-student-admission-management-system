@@ -40,10 +40,11 @@ urlpatterns = [
     path("faculty-list/", faculty_list_view, name="faculty-list"),
 
     # Student: Upload POS file
-    path("choose-instructor/<int:pk>/upload-file/", upload_file_view),
-
+    path('choose-instructor/<int:pk>/upload-file/',
+         upload_file_view, name='upload-pos-file'),
     # Student: Submit POS
-    path("choose-instructor/<int:pk>/submit/", submit_pos_view),
+    path('choose-instructor/<int:pk>/submit/',
+         submit_pos_view, name='submit-pos'),
 
     # ===== Admin APIs =====
     path("choose-instructor/", choose_instructor_list_view),
