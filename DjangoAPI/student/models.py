@@ -89,7 +89,7 @@ class ChooseInstructor(models.Model):
     facultyName = models.CharField(max_length=255)
     studentId = models.IntegerField()
     studentName = models.CharField(max_length=255)
-    file = models.FileField(upload_to="choose_instructor/")
+    file = models.FileField(upload_to="choose_instructor/", blank=True, null=True)
     studentComment = models.TextField(blank=True)
     facultyComment = models.TextField(blank=True)
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING)

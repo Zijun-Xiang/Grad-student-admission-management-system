@@ -51,6 +51,9 @@ INSTALLED_APPS = [
     'student',
     'faculty',
     'adminpanel',
+    'student',
+    'faculty',
+    #'EmployeeApp.apps.EmployeeappConfig'
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True

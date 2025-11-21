@@ -7,6 +7,8 @@ import axios from 'axios'
 // --------------------------
 const facultyList = ref([])
 const selectedFacultyId = ref('')
+const chooseRequestId = ref(null)
+const studentId = ref(null)
 
 const fileName = ref('No file chosen')
 const selectedFile = ref(null)
@@ -19,28 +21,52 @@ const fileUploaded = ref(false)
 const submitting = ref(false)
 const uploading = ref(false)
 
-const canSubmit = computed(() => !!selectedFacultyId.value && fileUploaded.value)
+// 提交按钮是否可用
+const canSubmit = computed(
+  () => !!selectedFacultyId.value && !!chooseRequestId.value && fileUploaded.value
+)
 
 // --------------------------
 // 拉取导师列表（使用 admin 端接口）
 // --------------------------
 const loadFaculty = async () => {
   try {
-    const res = await axios.get('/api/admin/faculty-list/')
-    facultyList.value = res.data.faculty || []
+    const res = await axios.get('/api/student/choose-instructor/faculty/')
+    facultyList.value = res.data || []
   } catch (error) {
     message.value = 'Failed to load faculty list.'
     messageType.value = 'error'
   }
 }
 
+const createChooseRequest = async () => {
+  if (!selectedFacultyId.value) return false
 
-// --------------------------
-const handleFacultySelect = () => {
+  try {
+    const res = await axios.post('/api/student/choose-instructor/create/', {
+      faculty_id: selectedFacultyId.value
+    })
+    chooseRequestId.value = res.data.id
+    studentId.value = res.data.studentId
+    return true
+  } catch (error) {
+    message.value = 'Failed to start request. Please try again.'
+    messageType.value = 'error'
+    return false
+  }
+}
+
+// 选择导师后创建/重置申请记录
+const handleFacultySelect = async () => {
   message.value = ''
   fileUploaded.value = false
   selectedFile.value = null
   fileName.value = 'No file chosen'
+  chooseRequestId.value = null
+
+  if (!selectedFacultyId.value) return
+
+  await createChooseRequest()
 }
 
 // --------------------------
@@ -71,8 +97,17 @@ const handleUpload = async () => {
     return
   }
 
+  // 确保已有申请记录（若因网络原因未创建则补建）
+  if (!chooseRequestId.value) {
+    const created = await createChooseRequest()
+    if (!created) return
+  }
+
   const formData = new FormData()
   formData.append('file', selectedFile.value)
+  if (studentId.value) {
+    formData.append('student_id', studentId.value)
+  }
 
   //关键修复点：必须传 student_id
   formData.append('student_id', localStorage.getItem('user_id'))
@@ -80,7 +115,7 @@ const handleUpload = async () => {
   try {
     uploading.value = true
     await axios.post(
-      `/api/admin/choose-instructor/${selectedFacultyId.value}/upload-file/`,
+      `/api/student/choose-instructor/${chooseRequestId.value}/upload-file/`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     )
@@ -111,16 +146,20 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!chooseRequestId.value) {
+    const created = await createChooseRequest()
+    if (!created) return
+  }
+
   try {
     submitting.value = true
     await axios.post(
-  `/api/admin/choose-instructor/${selectedFacultyId.value}/submit/`,
-  { studentComment: studentComment.value,
-     student_id: localStorage.getItem("user_id"),
-
-  }
-)
-
+      `/api/student/choose-instructor/${chooseRequestId.value}/submit/`,
+      {
+        studentComment: studentComment.value,
+        student_id: studentId.value
+      }
+    )
     message.value = 'Submitted for review successfully.'
     messageType.value = 'success'
   } catch (error) {
