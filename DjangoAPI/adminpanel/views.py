@@ -15,6 +15,115 @@ from .serializers import (
 )
 from student.models import ChooseInstructor
 
+# faculty_list_view
+# ============================
+# Faculty List API（使用 MySQL 查询 users 表）
+# ============================
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+import mysql.connector
+from DjangoAPI.settings import DATABASES
+
+@api_view(['POST'])
+def upload_file_view(request, pk):
+    """
+    Student uploads Program of Study file
+    pk = faculty.user_id  (前端传入的是导师ID)
+    """
+
+    try:
+        # 确认学生身份（前端登录后必须传 student_id）
+        student_id = request.data.get("student_id")
+        if not student_id:
+            return Response({"success": False, "message": "Missing student_id"}, status=400)
+
+        # 获取/创建 ChooseInstructor 记录（1学生 + 1导师 只有1条）
+        choose, created = ChooseInstructor.objects.get_or_create(
+            student_id=student_id,
+            faculty_id=pk,     # 这里 pk 是 faculty.user_id
+        )
+
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            return Response({"success": False, "message": "No file received."}, status=400)
+
+        choose.document = uploaded_file
+        choose.save(update_fields=["document"])
+
+        return Response({"success": True, "message": "File uploaded successfully."})
+
+    except Exception as e:
+
+        return Response({"success": False, "message": str(e)}, status=500)
+
+
+@api_view(['POST'])
+def submit_pos_view(request, pk):
+    """
+    Student submits POS for review
+    pk = faculty.user_id
+    """
+
+    try:
+        student_id = request.data.get("student_id")
+        if not student_id:
+            return Response({"success": False, "message": "Missing student_id"}, status=400)
+
+        choose, created = ChooseInstructor.objects.get_or_create(
+            student_id=student_id,
+            faculty_id=pk,
+        )
+
+        choose.studentComment = request.data.get("studentComment", "")
+        choose.submittedAt = timezone.now()
+        choose.state = ChooseInstructor.STATE_PENDING
+        choose.save(update_fields=["studentComment", "submittedAt", "state"])
+
+        return Response({"success": True, "message": "Submitted for review."})
+
+    except Exception as e:
+        return Response({"success": False, "message": str(e)}, status=500)
+
+
+@api_view(['GET'])
+def faculty_list_view(request):
+    try:
+        # 连接 MySQL
+        conn = mysql.connector.connect(
+            host=DATABASES['default']['HOST'],
+            user=DATABASES['default']['USER'],
+            password=DATABASES['default']['PASSWORD'],
+            database=DATABASES['default']['NAME']
+        )
+
+        cursor = conn.cursor(dictionary=True)
+
+        # 查询所有 Faculty
+        query = """
+            SELECT user_id, name, department
+            FROM users
+            WHERE identity = 'Faculty';
+        """
+        cursor.execute(query)
+        faculty_rows = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return Response({
+            "success": True,
+            "faculty": faculty_rows
+        }, status=200)
+
+    except Exception as e:
+        return Response({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+
 
 
 ############Zijun Xiang
@@ -172,4 +281,7 @@ def choose_instructor_reject_view(request, pk):
     choose.save(update_fields=["state", "facultyComment", "reviewedAt"])
     serializer = ChooseInstructorAdminSerializer(choose)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# ========== Faculty 列表 API（Student Portal 用） ==========
 
