@@ -278,23 +278,15 @@ body {
     margin-bottom:16px;
 }
 
-/* Horizontal terms row styles */
-.terms-row-container{margin-top:12px}
-.terms-row{
-    display:flex;
+/* Term grid (avoids timeline-style row) */
+.terms-grid-container{margin-top:12px}
+.terms-grid{
+    display:grid;
     gap:12px;
-    overflow-x:auto;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     padding:8px;
-    -webkit-overflow-scrolling: touch;
 }
-.terms-row.dragging{cursor:grabbing}
-.terms-row::-webkit-scrollbar{height:10px}
-.terms-row::-webkit-scrollbar-track{background:transparent;border-radius:8px}
-.terms-row::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
-.term-card{min-width:260px;flex:0 0 auto}
-
-/* Make scrollbar visible on all browsers */
-.terms-row{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+.term-card{min-width:0}
 
 .completed-prerequisites-section {
     display: flex;

@@ -4,20 +4,16 @@
   overflow: hidden;
 }
 
-.sidebar {
-  width: 220px;
-  flex-shrink: 0;
-}
-
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
+  background: var(--page-bg);
 }
 
 .page-content {
   padding: 2rem;
   padding-top: 88px;
   overflow-y: auto;
-  background-color: #fcfcf7;
+  background-color: var(--page-bg);
 }

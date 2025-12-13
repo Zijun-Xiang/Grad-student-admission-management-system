@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from '../components/layout/Sidebar';
-import Navbar from '../components/layout/Navbar';
+import Layout from '../components/layout/Layout';
 import axios from "axios";
 import './Courses.css'
 const api = axios.create({
@@ -10,7 +9,6 @@ const api = axios.create({
 export default function Courses() {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [filterLevel, setFilterLevel] = useState("");
     // state for adding a new course
     const [newCourse, setNewCourse] = useState({
@@ -233,31 +231,41 @@ export default function Courses() {
     }
 
     return (
-        <>
-            <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-            <Navbar sidebarOpen={sidebarOpen} />
-            <main style={{ paddingLeft: sidebarOpen ? '20rem' : '5rem' }}>
+        <Layout>
+            <div className="page-shell courses-page">
+                <div className="page-grid wide">
                 {/* Filter by course level */}
-                <div className="filter-level">
-                    <label className="font-medium">Filter by Level:</label>
-                    <select
-                        className="filter-level-select"
-                        value={filterLevel}
-                        onChange={e => setFilterLevel(e.target.value)}
-                    >
-                        <option value="">All</option>
-                        <option value="undergraduate">Undergraduate</option>
-                        <option value="graduate">Graduate</option>
-                    </select>
+                <div className="card">
+                    <div className="card-header">
+                        <span className="card-title">Filter Courses</span>
+                        <span className="pill">GET /courses</span>
+                    </div>
+                    <div className="card-body filter-level">
+                        <label className="font-medium">Filter by Level:</label>
+                        <select
+                            className="filter-level-select"
+                            value={filterLevel}
+                            onChange={e => setFilterLevel(e.target.value)}
+                        >
+                            <option value="">All</option>
+                            <option value="undergraduate">Undergraduate</option>
+                            <option value="graduate">Graduate</option>
+                        </select>
                     {/*<button className="reset-sort-button" onClick={() => {
                         setFilterLevel("");
                         fetchCourses();
                     }}>
                         Reset Filter
                     </button>*/}
+                    </div>
                 </div>
                 {/* List all courses table */}
-                <div className="courses-table">
+                <div className="card table-card">
+                    <div className="card-header">
+                        <span className="card-title">Courses</span>
+                        <span className="pill">GET</span>
+                    </div>
+                    <div className="card-body courses-table">
                     {/* TODO: add amount per page and more than 1 page */}
                     <table className="displayed-courses">
                         <thead>
@@ -329,10 +337,15 @@ export default function Courses() {
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </div>
                 {/* Add course form */}
-                <div className="add-course-form">
-                    <h2>Add New Course</h2>
+                <div className="card add-course-form">
+                    <div className="card-header">
+                        <span className="card-title">Add New Course</span>
+                        <span className="pill">POST /courses</span>
+                    </div>
+                    <div className="card-body">
                     <form onSubmit={handleAddCourse}>
                         <div>
                             <label>Course Code:</label>
@@ -389,10 +402,15 @@ export default function Courses() {
                         </div>
                         <button type="submit">Add Course</button>
                     </form>
+                    </div>
                 </div>
                 {/* Add pre-requisites form */}
-                <div className="add-prerequisites-form">
-                    <h2>Add Prerequisite Group</h2>
+                <div className="card add-prerequisites-form">
+                    <div className="card-header">
+                        <span className="card-title">Add Prerequisite Group</span>
+                        <span className="pill">POST /courses/:id/prerequisite-groups</span>
+                    </div>
+                    <div className="card-body">
                     <form onSubmit={handleAddPrerequisiteGroup}>
                         <label className="group-name-label">Select the course that this group applies to:</label>
                         <select
@@ -426,9 +444,14 @@ export default function Courses() {
                         <button type="submit">Add Prerequisite Group</button>
                     </form>
                     <p>Note: adding multiple prerequisites to a group acts as an AND operation.</p>
+                    </div>
                 </div>
                 {/* Import/Export buttons */}
-                <div className="import-export-buttons">
+                <div className="card import-export-buttons">
+                    <div className="card-header">
+                        <span className="card-title">Import / Export</span>
+                    </div>
+                    <div className="card-body">
                     <input
                         type="file"
                         accept=".json"
@@ -445,8 +468,10 @@ export default function Courses() {
                         }}
                     />
                     <button onClick={exportCoursesToJson}>Export Courses to JSON</button>
+                    </div>
                 </div>
-            </main>
-        </>
+                </div>
+            </div>
+        </Layout>
     );
 }

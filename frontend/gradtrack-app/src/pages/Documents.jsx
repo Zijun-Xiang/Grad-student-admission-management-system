@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/layout/Sidebar';
-import Navbar from '../components/layout/Navbar';
+import Layout from '../components/layout/Layout';
 import './Documents.css';
 import documentVaultApi from '../features/DocumentVault/api/documentVaultApi';
 
 const Documents = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Files state statically set for testing
@@ -269,10 +267,8 @@ const updateRequiredDocuments = (uploadedFiles) => {
   };
 
   return (
-    <>
-    <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <main style={{ paddingLeft: sidebarOpen ? '20rem' : '5rem' }}>
-      <Navbar sidebarOpen={sidebarOpen} />
+    <Layout>
+      <div className="page-shell documents-page">
         <div className="documents-container">
           <div className="documents-header">
             <h1>Document Vault</h1>
@@ -424,8 +420,8 @@ const updateRequiredDocuments = (uploadedFiles) => {
             ))}
           </div>
         </div>
-      </main>
-    </>
+      </div>
+    </Layout>
   );
 };
 export default Documents; 

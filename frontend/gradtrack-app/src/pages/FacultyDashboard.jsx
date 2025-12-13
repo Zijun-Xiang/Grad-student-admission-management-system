@@ -44,54 +44,70 @@ const FacultyDashboard = () => {
 
   return (
     <Layout>
-      
-      <div className="faculty-dashboard-container">
-       <div className="faculty-top-section">
-        <div className="faculty-header">
-          <h1>Welcome, {faculty.user.first_name} {faculty.user.last_name}</h1>
-          <p>Title: {faculty.title}</p>
-          <p>Office: {faculty.office}</p>
-          <p>{faculty.advised_students.length} students advised</p>
-          <p>2 pending actions</p>
-        </div>
-        
+      <div className="page-shell faculty-dashboard-page">
+        <div className="page-grid wide faculty-grid">
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Faculty Overview</span>
+              <span className="pill">/api/faculty/{user?.id}/students</span>
+            </div>
+            <div className="card-body">
+              <div className="section-heading">Welcome, {faculty.user.first_name} {faculty.user.last_name}</div>
+              <div className="stack">
+                <div className="muted">Title: {faculty.title}</div>
+                <div className="muted">Office: {faculty.office}</div>
+                <div className="pill">Advisees {faculty.advised_students.length}</div>
+              </div>
+            </div>
+          </div>
 
-        <div className="calendar-container">
           <CalendarWidget />
-        </div>
-      </div>
 
-
-
-
-        <section className="to-do-section">
-          <h2>To Do</h2>
-          <div className="to-do-grid">
-            <div className="alert-item">
-              <h3>Alerts</h3>
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Document Review</span>
+              <span className="pill">Review</span>
+            </div>
+            <div className="card-body card-body-flush">
               <DocumentReview />
             </div>
-            <div className="upcoming-item">
-              <h3>Upcoming</h3>
-              <p>John Smith - Approve (Nov 15)</p>
-              <p>Committee Meeting (Nov 20)</p>
+          </div>
+
+          <div className="card table-card">
+            <div className="card-header">
+              <span className="card-title">Your Advisees</span>
+              <span className="pill">Students</span>
+            </div>
+            <div className="card-body">
+              {faculty.advised_students.length === 0 ? (
+                <div className="muted">No advisees found.</div>
+              ) : (
+                <table className="students-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Program</th>
+                      <th>Started</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {faculty.advised_students.map(student => (
+                      <tr key={student.student_id}>
+                        <td>{student.user.first_name} {student.user.last_name}</td>
+                        <td>{student.program_type}</td>
+                        <td>{student.start_term}</td>
+                        <td>
+                          <button className="view-btn" onClick={() => navigate(`/student-details/${student.student_id}`)}>View</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
-        </section>
-
-        <section className="advised-students-section">
-          <h2>Your Advisees</h2>
-          <div className="students-grid">
-            {faculty.advised_students.map(student => (
-              <div key={student.student_id} className="student-card">
-                <h3>{student.user.first_name} {student.user.last_name}</h3>
-                <p>Program: {student.program_type}</p>
-                <p>Started: {student.start_term}</p>
-                <button className="view-btn" onClick={() => navigate(`/student-details/${student.student_id}`)}>View Details</button>
-              </div>
-            ))}
-          </div>
-        </section>
+        </div>
       </div>
     </Layout>
   );

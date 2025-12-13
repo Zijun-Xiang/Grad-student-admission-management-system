@@ -1,34 +1,26 @@
-:root {
-    --cream-white: #fdfcf5;
-    --soft-yellow: #fcf8d8;
-    --text-dark: #333;
-    --text-muted: #777;
-    --border-soft: #f0eac2;
-  }
 .student-detail-container {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
+    padding: 0;
   }
   
   .back-btn {
     margin-bottom: 1rem;
     padding: 0.5rem 1rem;
-    background: #777;
-    border: none;
-    border-radius: 4px;
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
     cursor: pointer;
-    color: white;
+    color: #0f172a;
+    box-shadow: none;
   }
   
   .back-btn:hover {
-    background: var(--text-dark);
+    background: #f7f9fc;
   }
   
   .student-header {
     margin-bottom: 2rem;
     padding-bottom: 1rem;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 1px solid var(--card-border);
   }
   
   .student-header h1 {
@@ -36,7 +28,7 @@
   }
   
   .student-email {
-    color: #666;
+    color: var(--muted);
     margin: 0;
   }
   
@@ -47,22 +39,22 @@
   }
   
   .info-section {
-    background-color: var(--soft-yellow);
+    background-color: #ffffff;
     padding: 1.5rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-soft);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    border-radius: var(--radius);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow);
   }
 
   .info-section:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 14px 50px rgba(15, 23, 42, 0.1);
   }
   
   .info-section h2 {
     margin-top: 0;
     margin-bottom: 1rem;
-    color: #333;
+    color: #0f172a;
   }
   
   .info-item {

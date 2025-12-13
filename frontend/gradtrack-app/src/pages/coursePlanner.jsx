@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import Sidebar from '../components/layout/Sidebar';
-import Navbar from '../components/layout/Navbar';
+import Layout from '../components/layout/Layout';
 import PrerequisiteModal from '../components/PrerequisiteModal';
 import axios from "axios";
 import './coursePlanner.css'
@@ -22,7 +21,6 @@ export default function CoursePlanner() {
     const [courses, setCourses] = useState([]);
     const [search, setSearch] = useState("");
     const [planned, setPlanned] = useState([]); 
-    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [terms, setTerms] = useState([]); 
     const [nextTermId, setNextTermId] = useState(1);
     const [removedCourses, setRemovedCourses] = useState([]);  // Track removed courses for deletion
@@ -384,16 +382,14 @@ export default function CoursePlanner() {
     }
 
     return (
-        <>
-            <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-            <Navbar />
+        <Layout>
             <PrerequisiteModal 
                 isOpen={showPrereqModal} 
                 onClose={handleClosePrereqModal}
                 onSubmit={handlePrereqModalSubmit}
                 allCourses={courses}
             />
-            <div className="course-planner-page">
+            <div className="page-shell course-planner-page">
                 <div className="planner-header">
                     <h2>Course Planner</h2>
                 </div>
@@ -459,19 +455,9 @@ export default function CoursePlanner() {
                                 <button className="btn btn-primary" onClick={handleSave}>Save Schedule</button>
                             </div>
                         </section>
-                        <section className="terms-row-container card">
+                        <section className="terms-grid-container card">
                             <h3>Terms</h3>
-                            <div
-                                className="terms-row"
-                                ref={termsRowRef}
-                                onMouseDown={onTermsMouseDown}
-                                onMouseMove={onTermsMouseMove}
-                                onMouseUp={onTermsMouseUp}
-                                onMouseLeave={onTermsMouseUp}
-                                onTouchStart={onTermsTouchStart}
-                                onTouchMove={onTermsTouchMove}
-                                onTouchEnd={onTermsTouchEnd}
-                            >
+                            <div className="terms-grid">
                                 {terms.length === 0 && <div className="placeholder">No terms yet. Add one on the right.</div>}
                                 {terms.map(t => (
                                     <div key={t.id} className="term-card" onDragOver={allowDrop} onDrop={e => onDropToTerm(e, t.id)}>
@@ -510,7 +496,7 @@ export default function CoursePlanner() {
                     
                 </div>
             </div>
-        </>
+        </Layout>
     );
 }
 

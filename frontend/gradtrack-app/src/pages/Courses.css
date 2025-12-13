@@ -1,188 +1,93 @@
+.courses-page {
+  display: flex;
+  flex-direction: column;
+}
 
-  /* Courses.css - Courses Page Styling */
-:root {
-    --cream-white: #fdfcf5;
-    --soft-yellow: #fcf8d8;
-    --text-dark: #333;
-    --text-muted: #777;
-    --border-soft: #f0eac2;
-    --accent-yellow: #f6e27f;
-    --white: #ffffff;
-    --accent-blue: #4a90e2;
-    --accent-green: #7ed6a3;
-    --accent-red: #e27a7a;
-    --soft-red: #f28b82;
-    --soft-blue: #a0c4ff;
-    --soft-green: #b2f2bb;
-  }
 .filter-level {
-    margin: 20px 50px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .filter-level-select {
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border-soft);
-    border-radius: 8px;
-    background-color: var(--white);
-    color: var(--text-dark);
-    font-family: 'Poppins', sans-serif;
-    cursor: pointer;
+  min-width: 220px;
 }
+
 .courses-table {
-    margin: 20px;
-    border-collapse: collapse;
-    width: 100%;
+  overflow: auto;
 }
 
-.courses-table th, .courses-table td {
-    border: 1px solid var(--border-soft);
-    padding: 8px;
-    text-align: left;
+.displayed-courses {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.courses-table th {
-    background-color: var(--soft-yellow);
-    color: var(--text-dark);
+.displayed-courses th,
+.displayed-courses td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--card-border);
+  text-align: left;
+  vertical-align: top;
 }
 
-.courses-table tr:nth-child(even) {
-    background-color: var(--cream-white);
+.displayed-courses th {
+  background: #f7f9fc;
+  font-weight: 800;
+  color: #0f172a;
 }
 
-.courses-table tr:hover {
-    background-color: var(--accent-yellow);
-    cursor: pointer;
+.displayed-courses tr:hover {
+  background: #f9fbff;
 }
-.courses-table .edit-button {
-    padding: 0.3rem 0.6rem;
-    border: none;
-    border-radius: 4px;
-    background-color: var(--accent-blue);
-    color: var(--text-dark);
-    font-family: 'Poppins', sans-serif;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-.courses-table .edit-button:hover {
-    background-color: var(--soft-blue);
-}
-.courses-table .delete-button {
-    padding: 0.3rem 0.6rem;
-    border: none;
-    border-radius: 4px;
-    background-color: var(--accent-red);
-    color: var(--text-dark);
-    font-family: 'Poppins', sans-serif;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-.courses-table .delete-button:hover {
-    background-color: var(--soft-red);
-}
-.add-course-form {
-    margin: 20px;
-    border-collapse: collapse;
-    width: 100%;
-}
-.add-course-form label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--text-dark);
-}
-.add-course-form input, .add-course-form select, .add-course-form textarea {
-    width: 50%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-soft);
-    border-radius: 4px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 1rem;
-    color: var(--text-dark);
-    background-color: var(--white);
-    box-sizing: border-box;
-}
-.add-course-form button {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    background-color: var(--accent-blue);
-    color: var(--white);
-    font-family: 'Poppins', sans-serif;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-.add-course-form button:hover {
-    background-color: var(--soft-blue);
-}
-.add-prerequisites-form {
-    margin: 20px;
-    border-collapse: collapse;
-    width: 100%;
-}
-.add-prerequisites-form h2 {
-    font-family: 'Poppins', sans-serif;
-    color: var(--text-dark);
-    margin-bottom: 1rem;
-}
-.add-prerequisites-form label {
-        display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--text-dark);
-}
-.add-prerequisites-form input, .add-prerequisites-form select, .add-prerequisites-form textarea {
-    width: 50%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-soft);
-    border-radius: 4px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 1rem;
-    color: var(--text-dark);
-    background-color: var(--white);
-    box-sizing: border-box;
-}
-.add-prerequisites-form form {
-    font-family: 'Poppins', sans-serif;
-    color: var(--text-dark);
-}
-.add-prerequisites-form button {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    background-color: var(--accent-blue);
-    color: var(--white);
-    font-family: 'Poppins', sans-serif;
-    cursor: pointer;
-}
-.add-prerequisites-form button:hover {
-    background-color: var(--soft-blue);
-}
-.editing-row input{
-    background-color: var(--soft-yellow);
-    text-align: left;
-    color: var(--text-dark);
-}
+
+.editing-row input,
 .editing-row select {
-    background-color: var(--soft-yellow);
-    color: var(--text-dark);
+  width: 100%;
 }
-.save-button {
-    padding: 0.3rem 0.6rem;
-    background-color: var(--accent-green);
-    color: var(--text-dark);
-    font-family: 'Poppins', sans-serif;
-    cursor: pointer;
+
+.add-course-form form,
+.add-prerequisites-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
-.save-button:hover {
-    background-color: var(--soft-green);
+
+.add-course-form label,
+.add-prerequisites-form label {
+  font-weight: 700;
+  color: #0f172a;
+  display: block;
+  margin-bottom: 0.35rem;
 }
-.cancel-button {
-    padding: 0.3rem 0.6rem;
-    background-color: var(--accent-red);
-    color: var(--text-dark);
-    font-family: 'Poppins', sans-serif;
-    cursor: pointer;
+
+.import-export-buttons input[type="file"] {
+  width: 100%;
 }
-.cancel-button:hover {
-    background-color: var(--soft-red);
+
+.courses-table .edit-button,
+.courses-table .save-button,
+.courses-table .cancel-button,
+.courses-table .delete-button {
+  padding: 0.45rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: none;
+  font-weight: 800;
+  margin-right: 0.4rem;
+}
+
+.courses-table .edit-button:hover,
+.courses-table .save-button:hover,
+.courses-table .cancel-button:hover,
+.courses-table .delete-button:hover {
+  background: #f7f9fc;
+  transform: translateY(-1px);
+}
+
+.courses-table .delete-button {
+  border-color: #f3b8b3;
+  color: #b42318;
 }

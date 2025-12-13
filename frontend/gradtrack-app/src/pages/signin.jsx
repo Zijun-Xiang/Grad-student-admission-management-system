@@ -4,6 +4,7 @@ import logo from "../assets/grad.png";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import API_CONFIG from "../api/config";
+import { Link } from "react-router-dom";
 
 export default function Signin() {
     const navigate = useNavigate();
@@ -55,16 +56,32 @@ export default function Signin() {
 
     return (
         <div className="login-page">
-            <img src={logo} alt="Logo" className= "logo" />
-            <h1>Sign In</h1>
-            <form onSubmit={(e) => {e.preventDefault(); sendSignIn(form.email, form.password)}}>
-                {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
-                <input type="email" name="email" placeholder="E-mail" value={form.email} onChange={(handleChange)} required/>
-                <input type="password" name="password" placeholder="Password" value={form.password} onChange={(handleChange)} required/>
-                <button type="submit" disabled={loading}>
-                    {loading ? 'Signing In...' : 'Login'}
-                </button>
-            </form>
+            <div className="card auth-card">
+              <div className="card-header">
+                <span className="card-title">GradTrack Access</span>
+                <span className="pill">Sign In</span>
+              </div>
+              <div className="card-body">
+                <div className="auth-header">
+                  <img src={logo} alt="Logo" className="logo" />
+                  <div className="auth-title">
+                    <h1>Sign In</h1>
+                    <p>Continue to your dashboard</p>
+                  </div>
+                </div>
+                <form onSubmit={(e) => {e.preventDefault(); sendSignIn(form.email, form.password)}}>
+                    {error && <div className="pill error">{error}</div>}
+                    <input type="email" name="email" placeholder="E-mail" value={form.email} onChange={(handleChange)} required/>
+                    <input type="password" name="password" placeholder="Password" value={form.password} onChange={(handleChange)} required/>
+                    <div className="auth-actions">
+                      <Link to="/signup" className="secondary-link">Create account</Link>
+                      <button type="submit" disabled={loading}>
+                          {loading ? 'Signing In...' : 'Login'}
+                      </button>
+                    </div>
+                </form>
+              </div>
+            </div>
         </div>
     );
 }

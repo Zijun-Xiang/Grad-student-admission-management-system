@@ -1,19 +1,17 @@
-import React, { useState, useEffect, useContext } from 'react';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import './CalendarWidget.css';
 import API_CONFIG from '../../api/config';
 import { UserContext } from '../../context/UserContext';
 
 export default function CalendarWidget() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [reminders, setReminders] = useState([]);
-  const [selectedDateReminders, setSelectedDateReminders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { user } = useContext(UserContext);
 
   useEffect(() => {
     const fetchReminders = async () => {
       if (!user) return;
+      setLoading(true);
       
       try {
         const response = await API_CONFIG.request('/api/reminders', {
@@ -21,115 +19,80 @@ export default function CalendarWidget() {
         });
         if (response.ok) {
           const data = await response.json();
-          setReminders(data);
+          setReminders(data || []);
         }
       } catch (error) {
-        console.error('Error fetching reminders for calendar:', error);
+        console.error('Error fetching reminders:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchReminders();
   }, [user]);
 
-  // Update selected date reminders when date changes
-  useEffect(() => {
-    if (!selectedDate || !reminders.length) {
-      setSelectedDateReminders([]);
-      return;
-    }
-    
-    const dateStr = formatDateForComparison(selectedDate);
-    const remindersForDate = reminders.filter(r => {
-      const reminderDate = r.due_date ? r.due_date.split('T')[0] : null;
-      return reminderDate === dateStr;
+  const priorityCount = useMemo(() => {
+    return reminders.reduce(
+      (acc, r) => {
+        const level = (r.priority || 'medium').toLowerCase();
+        if (level === 'high') acc.high += 1;
+        else if (level === 'low') acc.low += 1;
+        else acc.medium += 1;
+        return acc;
+      },
+      { high: 0, medium: 0, low: 0 }
+    );
+  }, [reminders]);
+
+  const sortedReminders = useMemo(() => {
+    return [...reminders].sort((a, b) => {
+      const aDate = a.due_date ? new Date(a.due_date) : new Date(a.created_at || 0);
+      const bDate = b.due_date ? new Date(b.due_date) : new Date(b.created_at || 0);
+      return aDate - bDate;
     });
-    setSelectedDateReminders(remindersForDate);
-  }, [selectedDate, reminders]);
-
-  // Format date for comparison
-  const formatDateForComparison = (date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  // Check if a date has reminders
-  const hasReminders = (date) => {
-    const dateStr = formatDateForComparison(date);
-    return reminders.some(r => {
-      const reminderDate = r.due_date ? r.due_date.split('T')[0] : null;
-      return reminderDate === dateStr;
-    });
-  };
-
-  // Get reminder count for a date
-  const getReminderCount = (date) => {
-    const dateStr = formatDateForComparison(date);
-    return reminders.filter(r => {
-      const reminderDate = r.due_date ? r.due_date.split('T')[0] : null;
-      return reminderDate === dateStr;
-    }).length;
-  };
-
-  // Get highest priority for a date (high > medium > low)
-  const getHighestPriority = (date) => {
-    const dateStr = formatDateForComparison(date);
-    const dateReminders = reminders.filter(r => {
-      const reminderDate = r.due_date ? r.due_date.split('T')[0] : null;
-      return reminderDate === dateStr;
-    });
-    
-    if (dateReminders.some(r => r.priority === 'high')) return 'high';
-    if (dateReminders.some(r => r.priority === 'medium')) return 'medium';
-    if (dateReminders.some(r => r.priority === 'low')) return 'low';
-    return 'medium'; // default
-  };
-
-  // Handle date change/click
-  const handleDateChange = (date) => {
-    setSelectedDate(date);
-  };
-
-  // Custom tile content to show reminder indicators
-  const tileContent = ({ date, view }) => {
-    if (view === 'month' && hasReminders(date)) {
-      const count = getReminderCount(date);
-      const priority = getHighestPriority(date);
-      return (
-        <div className="reminder-indicator" title={`${count} reminder${count > 1 ? 's' : ''} - Click to view`}>
-          <span className={`reminder-dot priority-${priority}`}></span>
-        </div>
-      );
-    }
-    return null;
-  };
-
+  }, [reminders]);
 
   return (
-    <div className="calendar-widget">
-      <h2>Calendar</h2>
-      <Calendar
-        onChange={handleDateChange}
-        value={selectedDate}
-        tileContent={tileContent}
-      />
-      <div className="selected-date-info">
-        <p><strong>Selected Date:</strong> {selectedDate.toDateString()}</p>
-        {selectedDateReminders.length > 0 && (
-          <div className="date-reminders">
-            <strong>Reminders for this date:</strong>
+    <div className="card reminder-card">
+      <div className="card-header">
+        <span className="card-title">Reminders</span>
+        <span className="pill">Total {reminders.length}</span>
+      </div>
+      <div className="card-body reminder-body">
+        {loading ? (
+          <div className="muted">Loading reminders...</div>
+        ) : reminders.length === 0 ? (
+          <div className="muted">No reminders yet.</div>
+        ) : (
+          <>
+            <div className="reminder-stats">
+              <div className="stat-chip high">High: {priorityCount.high}</div>
+              <div className="stat-chip med">Medium: {priorityCount.medium}</div>
+              <div className="stat-chip low">Low: {priorityCount.low}</div>
+            </div>
             <ul className="reminder-list-mini">
-              {selectedDateReminders.map(r => (
-                <li key={r.id} className={`priority-${r.priority}`}>
-                  {r.text}
-                  {r.created_by && (
-                    <span className="reminder-sender"> - From: {r.created_by.first_name} {r.created_by.last_name}</span>
-                  )}
+              {sortedReminders.map((r) => (
+                <li key={r.id} className={`priority-${r.priority || 'medium'}`}>
+                  <div className="reminder-row">
+                    <div>
+                      <div className="reminder-text">{r.text}</div>
+                      {r.created_by && (
+                        <div className="reminder-meta">From {r.created_by.first_name} {r.created_by.last_name}</div>
+                      )}
+                    </div>
+                    <div className="reminder-tags">
+                      {r.due_date && (
+                        <span className="badge">{new Date(r.due_date).toLocaleDateString()}</span>
+                      )}
+                      <span className={`badge priority ${r.priority || 'medium'}`}>{r.priority || 'medium'}</span>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>
-          </div>
+          </>
         )}
       </div>
-
     </div>
   );
 }

@@ -4,6 +4,7 @@ import logo from "../assets/grad.png";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import API_CONFIG from "../api/config";
+import { Link } from "react-router-dom";
 
 export default function Signup() {
     const navigate = useNavigate();
@@ -91,28 +92,44 @@ export default function Signup() {
     }
     return (
         <div className="login-page">
-            <img src={logo} alt="Logo" className= "logo" />
-            <h1>Sign Up</h1>
-            <form onSubmit={sendRegister}>
-                {error && <div style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
-                <input type="text" name="firstName" className="name" placeholder="First Name" value={form.firstName} onChange={(handleChange)} required/>
-                <input type="text" name="lastName" className="name" placeholder="Last Name" value={form.lastName} onChange={(handleChange)} required/>
-                <input type="email" name="email" className="email" placeholder="E-mail" value={form.email} onChange={(handleChange)} required/>
-                <select name="role" className="role" value={form.role} onChange={handleChange} required>
-                    <option value="student">Student</option>
-                    <option value="faculty">Faculty</option>
-                </select>
-                <input type="text" name="department" className="department" placeholder="Department (Optional)" value={form.department} onChange={(handleChange)}/>
-                <input type="password" name="password" className="password" placeholder="Password" value={form.password} onChange={(handleChange)} required/>
-                <input type="password" name="password_confirmation" className="confirm" placeholder="Confirm Password" value={form.password_confirmation} onChange={(handleChange)} required/>
-                <label>
-                    <input type="checkbox" name = "agree" className="agree" checked={form.agree} onChange={(handleChange)} required/>
-                    I agree to the terms and conditions.
-                </label>
-                <button type="submit" disabled={loading}>
-                    {loading ? 'Creating Account...' : 'Register'}
-                </button>
-            </form>
+            <div className="card auth-card">
+              <div className="card-header">
+                <span className="card-title">GradTrack Account</span>
+                <span className="pill">Sign Up</span>
+              </div>
+              <div className="card-body">
+                <div className="auth-header">
+                  <img src={logo} alt="Logo" className="logo" />
+                  <div className="auth-title">
+                    <h1>Create an account</h1>
+                    <p>Register to access GradTrack</p>
+                  </div>
+                </div>
+                <form onSubmit={sendRegister}>
+                    {error && <div className="pill error">{error}</div>}
+                    <input type="text" name="firstName" className="name" placeholder="First Name" value={form.firstName} onChange={(handleChange)} required/>
+                    <input type="text" name="lastName" className="name" placeholder="Last Name" value={form.lastName} onChange={(handleChange)} required/>
+                    <input type="email" name="email" className="email" placeholder="E-mail" value={form.email} onChange={(handleChange)} required/>
+                    <select name="role" className="role" value={form.role} onChange={handleChange} required>
+                        <option value="student">Student</option>
+                        <option value="faculty">Faculty</option>
+                    </select>
+                    <input type="text" name="department" className="department" placeholder="Department (Optional)" value={form.department} onChange={(handleChange)}/>
+                    <input type="password" name="password" className="password" placeholder="Password" value={form.password} onChange={(handleChange)} required/>
+                    <input type="password" name="password_confirmation" className="confirm" placeholder="Confirm Password" value={form.password_confirmation} onChange={(handleChange)} required/>
+                    <label>
+                        <input type="checkbox" name="agree" className="agree" checked={form.agree} onChange={(handleChange)} required/>
+                        I agree to the terms and conditions.
+                    </label>
+                    <div className="auth-actions">
+                      <Link to="/signin" className="secondary-link">Back to sign in</Link>
+                      <button type="submit" disabled={loading}>
+                          {loading ? 'Creating Account...' : 'Register'}
+                      </button>
+                    </div>
+                </form>
+              </div>
+            </div>
         </div>
     );
 }
