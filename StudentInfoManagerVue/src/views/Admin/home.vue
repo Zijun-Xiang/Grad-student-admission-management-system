@@ -7,8 +7,8 @@
           style="display: flex;align-items: center;  flex-direction: column;">
           <info-card style="width: 50%;margin-top: 80px;"></info-card>
           <el-card style="width: 50%; margin-top: 10px;display: flex;flex-direction: column;;">
-            <p class="system">当前系统：学生信息管理系统</p>
-            <p class="welcome">欢迎您使用本系统</p>
+            <p class="system">Current system: Student Information Management System</p>
+            <p class="welcome">Welcome to the system</p>
           </el-card>
           <logout style="margin-top: 20px;"></logout>
         </div>

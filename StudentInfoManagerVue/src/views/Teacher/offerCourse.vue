@@ -2,33 +2,33 @@
   <div>
     <el-container>
       <el-main style="display: flex;flex-direction: column;align-items: center; ">
-        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">课程查询</div>
+        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Course Search</div>
         <el-card style="width: 90%;">
-          <div style="color: black;font-size: 20px; font-weight: bold;margin-bottom: 20px;" >条件查询</div>
+          <div style="color: black;font-size: 20px; font-weight: bold;margin-bottom: 20px;" >Filters</div>
           <el-form :inline="true" :model="ruleForm" :rules="rules" ref="ruleForm" label-width="120px"
             class="demo-ruleForm">
-            <el-form-item label="课程号" prop="cid">
+            <el-form-item label="Course ID" prop="cid">
               <el-input v-model.number="ruleForm.cid"></el-input>
             </el-form-item>
-            <el-form-item label="课程名" prop="cname">
+            <el-form-item label="Course Name" prop="cname">
               <el-input v-model="ruleForm.cname"></el-input>
             </el-form-item>
-            <el-form-item label="模糊查询" prop="fuzzy">
+            <el-form-item label="Fuzzy Search" prop="fuzzy">
               <el-switch v-model="ruleForm.fuzzy"></el-switch>
             </el-form-item>
-            <el-form-item label="学分下限" prop="lowBound">
+            <el-form-item label="Minimum Credits" prop="lowBound">
               <el-input v-model.number="ruleForm.lowBound"></el-input>
             </el-form-item>
-            <el-form-item label="学分上限" prop="highBound">
+            <el-form-item label="Maximum Credits" prop="highBound">
               <el-input v-model.number="ruleForm.highBound"></el-input>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="resetForm('ruleForm')">重置</el-button>
+              <el-button type="primary" @click="resetForm('ruleForm')">Reset</el-button>
             </el-form-item>
           </el-form>
         </el-card>
         <el-card style="margin-top: 10px;width: 90%;">
-          <div style="color: black;font-size: 20px; font-weight: bold;margin-bottom: 20px;" >查询结果</div>
+          <div style="color: black;font-size: 20px; font-weight: bold;margin-bottom: 20px;" >Search Results</div>
           <offer-course-list :rule-form="ruleForm"></offer-course-list>
         </el-card>
       </el-main>
@@ -50,15 +50,15 @@ export default {
       },
       rules: {
         cid: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
         cname: [
         ],
         lowBound: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
         highBound: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
       }
     };

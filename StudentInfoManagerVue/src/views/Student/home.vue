@@ -8,8 +8,8 @@
           <info-card style="width: 50%;margin-top: 80px;"></info-card>
           <el-card style="width: 50%; margin-top: 10px;display: flex;flex-direction: column;;">
             <p style="font-size: 24px;"><i class="iconfont icon-r-setting"
-                style="margin-right: 5px;font-size: 28px;"></i>当前系统：学生信息管理系统</p>
-            <p class="welcome">欢迎您使用本系统</p>
+                style="margin-right: 5px;font-size: 28px;"></i>Current system: Student Information Management System</p>
+            <p class="welcome">Welcome to the system</p>
           </el-card>
           <logout style="margin-top: 20px;"></logout>
         </div>

@@ -1,17 +1,17 @@
 <template>
   <div  style="display: flex;flex-direction: column;align-items: center; ">
-    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">添加学生</div>
+    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Add Student</div>
     <el-form style="width: 40%" :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px"
       class="demo-ruleForm">
-      <el-form-item label="学生姓名" prop="sname">
+      <el-form-item label="Student Name" prop="sname">
         <el-input v-model="ruleForm.sname"></el-input>
       </el-form-item>
-      <el-form-item label="初始密码" prop="password">
+      <el-form-item label="Initial Password" prop="password">
         <el-input v-model="ruleForm.password" show-password></el-input>
       </el-form-item>
       <el-form-item  class="btns-wrapper" style="width: 100%; display: flex ;">
-                <el-button type="primary" @click="submitForm('ruleForm')">提交</el-button>
-                <el-button @click="resetForm('ruleForm')" type="warning">重置</el-button>
+                <el-button type="primary" @click="submitForm('ruleForm')">Submit</el-button>
+                <el-button @click="resetForm('ruleForm')" type="warning">Reset</el-button>
               </el-form-item>
 
 
@@ -28,11 +28,11 @@ export default {
       },
       rules: {
         sname: [
-          { required: true, message: '请输入名称', trigger: 'blur' },
-          { min: 2, max: 5, message: '长度在 2 到 5 个字符', trigger: 'blur' }
+          { required: true, message: 'Please enter a name', trigger: 'blur' },
+          { min: 2, max: 5, message: 'Length must be 2 to 5 characters', trigger: 'blur' }
         ],
         password: [
-          { required: true, message: '请输入密码', trigger: 'change' }
+          { required: true, message: 'Please enter a password', trigger: 'change' }
         ],
       }
     };
@@ -48,12 +48,12 @@ export default {
             if (resp.data === true) {
               that.$message({
                 showClose: true,
-                message: '插入成功',
+                message: 'Created successfully',
                 type: 'success'
               });
             }
             else {
-              that.$message.error('插入失败，请检查数据库');
+              that.$message.error('Creation failed, please check the database');
             }
             that.$router.push("/studentList")
           })

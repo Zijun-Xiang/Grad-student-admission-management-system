@@ -3,7 +3,7 @@
     <el-container>
       <el-header id="title">
         <span style="font-weight: bolder">
-          学生信息管理系统
+          Student Information Management System
         </span>
       </el-header>
       <el-main style="padding: 100px 65vh 0 65vh;width: 100%;" class="login-container">
@@ -11,29 +11,29 @@
           <div slot="header" class="clearfix" style="width: 100%;">
             <span style="text-align: center; font-size: 26px;">
               <p style="color: black;font-weight: bolder;font-size: larger;"><i class="iconfont icon-r-user2"
-                  style="margin-right: 5px;font-size: 34px; "></i>用户登录</p>
+                  style="margin-right: 5px;font-size: 34px; "></i>User Login</p>
             </span>
           </div>
           <div style="width: 95%;">
             <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="login-info-wrapper"
               label-position="left">
-              <el-form-item label="用户 id" prop="id" style="width: 85%;">
+              <el-form-item label="User ID" prop="id" style="width: 85%;">
                 <el-input v-model.number="ruleForm.id" prefix-icon="iconfont icon-r-user2"></el-input>
               </el-form-item>
-              <el-form-item label="用户密码" prop="password" style="width: 85%;">
-                <el-input v-model="ruleForm.password" placeholder="请输入密码" show-password
+              <el-form-item label="Password" prop="password" style="width: 85%;">
+                <el-input v-model="ruleForm.password" placeholder="Enter password" show-password
                   prefix-icon="iconfont icon-r-lock"></el-input>
               </el-form-item>
-              <el-form-item label="登录角色" prop="type" style="width: 85%;">
+              <el-form-item label="Login Role" prop="type" style="width: 85%;">
                 <el-radio-group v-model="ruleForm.type">
-                  <el-radio label="student" value="student">学生</el-radio>
-                  <el-radio label="teacher" value="teacher">老师</el-radio>
-                  <el-radio label="admin" value="admin">管理员</el-radio>
+                  <el-radio label="student" value="student">Student</el-radio>
+                  <el-radio label="teacher" value="teacher">Teacher</el-radio>
+                  <el-radio label="admin" value="admin">Administrator</el-radio>
                 </el-radio-group>
               </el-form-item>
               <el-form-item class="btns-wrapper" style="width: 100%; text-align: center;">
-                <el-button type="primary" @click="submitForm('ruleForm')">登录</el-button>
-                <el-button @click="resetForm('ruleForm')" type="warning">重置</el-button>
+                <el-button type="primary" @click="submitForm('ruleForm')">Log In</el-button>
+                <el-button @click="resetForm('ruleForm')" type="warning">Reset</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -54,14 +54,14 @@ export default {
       },
       rules: {
         id: [
-          { required: true, message: '请输入用户id', trigger: 'blur' },
-          { type: 'number', message: '用户id只包含数字', trigger: 'blur' },
+          { required: true, message: 'Please enter your user ID', trigger: 'blur' },
+          { type: 'number', message: 'User ID must contain only numbers', trigger: 'blur' },
         ],
         password: [
-          { required: true, message: '请输入密码', trigger: 'blur' }
+          { required: true, message: 'Please enter your password', trigger: 'blur' }
         ],
         type: [
-          { required: true, message: '请选择用户类型', trigger: 'change' }
+          { required: true, message: 'Please select a user role', trigger: 'change' }
         ],
       }
     };
@@ -103,7 +103,7 @@ export default {
                   if (that.ruleForm.type === 'admin' && name === 'admin') {
                     that.$message({
                       showClose: true,
-                      message: '登录成功，欢迎 ' + name + '!',
+                      message: 'Login successful, welcome ' + name + '!',
                       type: 'success'
                     });
                     that.$router.push('/admin')
@@ -111,7 +111,7 @@ export default {
                   else if (that.ruleForm.type === 'teacher' && name !== 'admin') {
                     that.$message({
                       showClose: true,
-                      message: '登录成功，欢迎 ' + name + '!',
+                      message: 'Login successful, welcome ' + name + '!',
                       type: 'success'
                     });
                     that.$router.push('/teacher')
@@ -119,7 +119,7 @@ export default {
                   else {
                     that.$message({
                       showClose: true,
-                      message: 'admin 登录失败，检查登录类型',
+                      message: 'Administrator login failed, please check the selected role',
                       type: 'error'
                     });
                   }
@@ -128,7 +128,7 @@ export default {
               else {
                 that.$message({
                   showClose: true,
-                  message: '登录失败，检查账号密码',
+                  message: 'Login failed, please check your ID and password',
                   type: 'error'
                 });
               }
@@ -170,7 +170,7 @@ export default {
                   sessionStorage.setItem("sid", resp.data.sid)
                   that.$message({
                     showClose: true,
-                    message: '登录成功，欢迎 ' + name + '!',
+                    message: 'Login successful, welcome ' + name + '!',
                     type: 'success'
                   });
 
@@ -187,7 +187,7 @@ export default {
               else {
                 that.$message({
                   showClose: true,
-                  message: '您输入的账号或密码错误，请联系管理员找回账号。',
+                  message: 'The ID or password is incorrect; please contact the administrator for assistance.',
                   type: 'error'
                 });
               }

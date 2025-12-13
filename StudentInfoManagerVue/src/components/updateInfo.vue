@@ -2,20 +2,20 @@
   <el-container>
     <el-main style="width: 60%; display: flex;flex-direction: column;align-items: center;align-content: center; ">
       <el-card style="padding: 20px;width:60%;display: flex;flex-direction: column;align-items: center;align-content: center; ">
-        <span style="width: 100%;;font-family:'HarmonyOS_Sans'  ;text-align: center;font-size: 30px;margin-bottom: 30px;font-weight: bolder;color: black;">个人信息修改</span>
+        <span style="width: 100%;;font-family:'HarmonyOS_Sans'  ;text-align: center;font-size: 30px;margin-bottom: 30px;font-weight: bolder;color: black;">Update Profile</span>
         <el-form :model="ruleForm" status-icon :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm" label-position="left">
-          <el-form-item  label="姓名：" prop="name">
+          <el-form-item  label="Name:" prop="name">
             <el-input v-model="ruleForm.name" :value="ruleForm.name"></el-input>
           </el-form-item>
-          <el-form-item label="新密码：" prop="pass">
+          <el-form-item label="New Password:" prop="pass">
             <el-input type="password" v-model="ruleForm.pass" autocomplete="off"></el-input>
           </el-form-item>
-          <el-form-item label="确认密码：" prop="checkPass">
+          <el-form-item label="Confirm Password:" prop="checkPass">
             <el-input type="password" v-model="ruleForm.checkPass" autocomplete="off"></el-input>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="submitForm('ruleForm')">提交</el-button>
-            <el-button @click="resetForm('ruleForm')" type="warning">重置</el-button>
+            <el-button type="primary" @click="submitForm('ruleForm')">Submit</el-button>
+            <el-button @click="resetForm('ruleForm')" type="warning">Reset</el-button>
           </el-form-item>
         </el-form>
       </el-card>
@@ -46,7 +46,7 @@ export default {
   data() {
     var validatePass = (rule, value, callback) => {
       if (value === '') {
-        callback(new Error('请输入密码'));
+        callback(new Error('Please enter a password'));
       } else {
         if (this.ruleForm.checkPass !== '') {
           this.$refs.ruleForm.validateField('checkPass');
@@ -56,9 +56,9 @@ export default {
     };
     var validatePass2 = (rule, value, callback) => {
       if (value === '') {
-        callback(new Error('请再次输入密码'));
+        callback(new Error('Please re-enter the password'));
       } else if (value !== this.ruleForm.pass) {
-        callback(new Error('两次输入密码不一致!'));
+        callback(new Error('The passwords do not match!'));
       } else {
         callback();
       }
@@ -77,7 +77,7 @@ export default {
           { validator: validatePass2, trigger: 'blur' }
         ],
         name: [
-          { require: true, message: '名字不能为空', trigger: 'blur'}
+          { require: true, message: 'Name cannot be empty', trigger: 'blur'}
         ]
       }
     };
@@ -112,12 +112,12 @@ export default {
             if (resp.data === true) {
               that.$message({
                 showClose: true,
-                message: '编辑成功',
+                message: 'Updated successfully',
                 type: 'success'
               });
             }
             else {
-              that.$message.error('编辑失败，联系管理员');
+              that.$message.error('Update failed, please contact the administrator');
             }
             that.$router.push("/" + type + 'Home')
           })

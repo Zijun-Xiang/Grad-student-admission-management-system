@@ -1,21 +1,21 @@
 <template>
     <div style="display: flex;flex-direction: column;align-items: center; ">
-      <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">教师列表</div>
+      <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Teacher List</div>
       <div>
     <el-table :data="tableData" >
-      <el-table-column fixed prop="tid" label="工号" width="150">
+      <el-table-column fixed prop="tid" label="Teacher ID" width="150">
       </el-table-column>
-      <el-table-column prop="tname" label="姓名" width="150">
+      <el-table-column prop="tname" label="Name" width="150">
       </el-table-column>
-      <el-table-column prop="password" label="密码" width="150">
+      <el-table-column prop="password" label="Password" width="150">
       </el-table-column>
-      <el-table-column label="操作" width="260" fixed="right">
+      <el-table-column label="Actions" width="260" fixed="right">
         <template slot-scope="scope">
-          <el-popconfirm confirm-button-text='删除' cancel-button-text='取消' icon="el-icon-info" icon-color="red"
-            title="删除不可复原" @confirm="deleteTeacher(scope.row)">
-            <el-button slot="reference" type="danger">删除</el-button>
+          <el-popconfirm confirm-button-text='Delete' cancel-button-text='Cancel' icon="el-icon-info" icon-color="red"
+            title="Deletion cannot be undone" @confirm="deleteTeacher(scope.row)">
+            <el-button slot="reference" type="danger">Delete</el-button>
           </el-popconfirm>
-          <el-button @click="editor(scope.row)" type="primary">编辑</el-button>
+          <el-button @click="editor(scope.row)" type="primary">Edit</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -33,7 +33,7 @@ export default {
       if (row.tname === 'admin') {
         this.$message({
           showClose: true,
-          message: 'admin 不可删除',
+          message: 'The admin account cannot be deleted',
           type: 'error'
         });
         return
@@ -43,7 +43,7 @@ export default {
         if (resp.data === true) {
           that.$message({
             showClose: true,
-            message: '删除成功',
+            message: 'Deleted successfully',
             type: 'success'
           });
           window.location.reload()
@@ -51,14 +51,14 @@ export default {
         else {
           that.$message({
             showClose: true,
-            message: '删除出错，请查询数据库连接',
+            message: 'Deletion failed, please check the database connection',
             type: 'error'
           });
         }
       }).catch(function (e) {
         that.$message({
           showClose: true,
-          message: '删除出错，存在外键依赖',
+          message: 'Deletion failed due to foreign key constraints',
           type: 'error'
         });
       })
@@ -75,7 +75,7 @@ export default {
       if (row.tname === 'admin') {
         this.$message({
           showClose: true,
-          message: 'admin 不可编辑',
+          message: 'The admin account cannot be edited',
           type: 'error'
         });
         return

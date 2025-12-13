@@ -65,14 +65,14 @@ const routes = [
     children: [
       {
         path: '/adminHome',
-        name: '管理员首页',
+        name: 'Admin Home',
         icon: 'home',
         component: adminHome,
         meta: {requireAuth: true},
         children: [
           {
             path: '/adminHome',
-            name: '管理员首页',
+            name: 'Admin Home',
             icon: 'home',
             component: adminHome,
             meta: {requireAuth: true},
@@ -81,28 +81,28 @@ const routes = [
       },
       {
         path: '/studentManage',
-        name: '学生管理',
+        name: 'Student Management',
         icon: 'user1',
         component: studentManage,
         meta: {requireAuth: true},
         children: [
           {
             path: '/addStudent',
-            name: '添加学生',
+            name: 'Add Student',
             icon: 'add',
             component: addStudent,
             meta: {requireAuth: true}
           },
           {
             path: '/studentList',
-            name: '学生列表',
+            name: 'Student List',
             icon: 'list',
             component: studentList,
             meta: {requireAuth: true},
           },
           {
             path: '/editorStudent',
-            name: '编辑学生',
+            name: 'Edit Student',
             show: false,
             icon: 'edit',
             component: editorStudent,
@@ -110,7 +110,7 @@ const routes = [
           },
           {
             path: '/queryStudent',
-            name: '搜索学生',
+            name: 'Search Student',
             icon: 'find',
             component: queryStudent,
             meta: {requireAuth: true},
@@ -126,21 +126,21 @@ const routes = [
       },
       {
         path: '/teacherManage',
-        name: '教师管理',
+        name: 'Teacher Management',
         icon: 'user2',
         component: teacherManage,
         meta: {requireAuth: true},
         children: [
           {
             path: '/addTeacher',
-            name: '添加教师',
+            name: 'Add Teacher',
             icon: 'add',
             component: addTeacher,
             meta: {requireAuth: true}
           },
           {
             path: '/queryTeacher',
-            name: '教师列表',
+            name: 'Teacher List',
             icon: 'list',
             component: queryTeacher,
             meta: {requireAuth: true},
@@ -149,7 +149,7 @@ const routes = [
           },
           {
             path: '/editorTeacher',
-            name: '编辑教师',
+            name: 'Edit Teacher',
             show: false,
             icon: 'edit',
             component: editorTeacher,
@@ -159,28 +159,28 @@ const routes = [
       },
       {
         path: '/courseManage',
-        name: '课程管理',
+        name: 'Course Management',
         icon: 'paper',
         component: courseManage,
         meta: {requireAuth: true},
         children: [
           {
             path: '/addCourse',
-            name: '添加课程',
+            name: 'Add Course',
             icon: 'add',
             component: addCourse,
             meta: {requireAuth: true}
           },
           {
             path: '/queryCourse',
-            name: '搜索课程',
+            name: 'Search Course',
             icon: 'find',
             component: queryCourse,
             meta: {requireAuth: true},
             children: [
               {
                 path: '/courseList',
-                name: '课程列表',
+                name: 'Course List',
                 icon: 'list',
                 component: courseList,
                 meta: {requireAuth: true}
@@ -189,7 +189,7 @@ const routes = [
           },
           {
             path: '/editorCourse',
-            name: '编辑课程',
+            name: 'Edit Course',
             show: false,
             icon: 'edit',
             component: editorCourse,
@@ -199,14 +199,14 @@ const routes = [
       },
       {
         path: '/CourseTeacher',
-        name: '开课表管理',
+        name: 'Course Offering Management',
         icon: 'paper',
         component: CourseTeacherManage,
         meta: {requireAuth: true},
         children: [
           {
             path: '/queryCourseTeacher',
-            name: '开课管理',
+            name: 'Manage Offerings',
             icon: 'yes',
             component: queryCourseTeacher,
             meta: {requireAuth: true},
@@ -214,7 +214,7 @@ const routes = [
         ]
       },
       {
-        name: '成绩管理',
+        name: 'Grade Management',
         path: "/gradeCourseManage",
         icon: 'yes',
         component: studentManage,
@@ -222,14 +222,14 @@ const routes = [
         children: [
           {
             path: '/queryGradeCourse',
-            name: '成绩查询',
+            name: 'Grade Search',
             icon: 'find',
             component: queryGradeCourse,
             meta: {requireAuth: true},
           },
           {
             path: '/editorGradeCourse',
-            name: '编辑成绩',
+            name: 'Edit Grade',
             show: false,
             icon: 'edit',
             component: editorGradeCourse,
@@ -248,14 +248,14 @@ const routes = [
     children: [
       {
         path: '/teacherHome',
-        name: '首页',
+        name: 'Home',
         icon: 'home',
         meta: {requireAuth: true},
         component: teacherHome,
         children: [
           {
             path: '/teacherHome',
-            name: '教师首页',
+            name: 'Teacher Home',
             icon: 'home',
             meta: {requireAuth: true},
             component: teacherHome
@@ -264,14 +264,14 @@ const routes = [
       },
       {
         path: '/updateInfo',
-        name: '个人中心',
+        name: 'Profile',
         icon: 'user2',
         component: updateInfo,
         meta: {requireAuth: true},
         children: [
           {
             path: '/updateInfoHome',
-            name: '编辑个人信息',
+            name: 'Edit Profile',
             icon: 'edit',
             component: updateInfo,
             meta: {requireAuth: true}
@@ -280,21 +280,21 @@ const routes = [
       },
       {
         path: '/courseManage',
-        name: '课程设置',
+        name: 'Course Setup',
         icon: 'paper',
         meta: {requireAuth: true},
         component: setCourse,
         children: [
           {
             path: '/myOfferCourse',
-            name: '我开设的课程',
+            name: 'Courses I Offer',
             icon: 'paper',
             component: myOfferCourse,
             meta: {requireAuth: true}
           },
           {
             path: '/offerCourse',
-            name: '开设课程',
+            name: 'Offer Course',
             icon: 'yes',
             component: offerCourse,
             meta: {requireAuth: true}
@@ -302,7 +302,7 @@ const routes = [
         ]
       },
       {
-        name: '成绩管理',
+        name: 'Grade Management',
         path: '/teacherQueryGradeCourseManage',
         icon: 'yes',
         component: teacherGradeCourseManage,
@@ -310,14 +310,14 @@ const routes = [
         children: [
           {
             path: '/teacherQueryGradeCourseManage',
-            name: '成绩列表',
+            name: 'Grade List',
             icon: 'list',
             component: teacherQueryGradeCourse,
             meta: {requireAuth: true}
           },
           {
             path: '/teacherEditorGradeCourse',
-            name: '编辑成绩',
+            name: 'Edit Grade',
             show: false,
             icon: 'edit',
             component: teacherEditorGradeCourse,
@@ -336,14 +336,14 @@ const routes = [
     children: [
       {
         path: '/student',
-        name: '学生首页',
+        name: 'Student Home',
         icon: 'home',
         component: studentHome,
         meta: {requireAuth: true},
         children: [
           {
             path: '/studentHome',
-            name: '学生首页',
+            name: 'Student Home',
             icon: 'home',
             component: studentHome,
             meta: {requireAuth: true},
@@ -352,14 +352,14 @@ const routes = [
       },
       {
         path: '/updateInfo',
-        name: '个人中心',
+        name: 'Profile',
         icon: 'user1',
         component: updateInfo,
         meta: {requireAuth: true},
         children: [
           {
             path: '/updateInfoHome',
-            name: '编辑个人信息',
+            name: 'Edit Profile',
             icon: 'edit',
             component: updateInfo,
             meta: {requireAuth: true}
@@ -368,21 +368,21 @@ const routes = [
       },
       {
         path: '/studentSelectCourseManage',
-        name: '选课管理',
+        name: 'Course Selection',
         icon: 'yes',
         component: studentSelectCourseManage,
         meta: {requireAuth: true},
         children: [
           {
             path: '/studentSelectCourse',
-            name: '选课',
+            name: 'Select Courses',
             icon: 'yes',
             component: selectCourse,
             meta: {requireAuth: true}
           },
           {
             path: '/querySelectedCourse',
-            name: '已选课程',
+            name: 'Selected Courses',
             icon: 'find',
             component: querySelectedCourse,
             meta: {requireAuth: true}
@@ -391,14 +391,14 @@ const routes = [
       },
       {
         path: '/courseGrade',
-        name: '学生成绩管理',
+        name: 'Student Grade Management',
         icon: 'yes',
         component: studentCourseGrade,
         meta: {requireAuth: true},
         children: [
           {
             path: '/queryCourseGrade',
-            name: '成绩查询',
+            name: 'Grade Search',
             icon: 'find',
             component: queryCourseGrade,
             meta: {requireAuth: true}

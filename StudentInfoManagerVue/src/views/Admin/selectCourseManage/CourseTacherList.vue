@@ -1,19 +1,19 @@
 <template>
   <div>
     <el-table :data="tableData" border show-header stripe style="width: 100%">
-      <el-table-column prop="cid" label="课号" width="150">
+      <el-table-column prop="cid" label="Course ID" width="150">
       </el-table-column>
-      <el-table-column prop="cname" label="课程号" width="150">
+      <el-table-column prop="cname" label="Course Code" width="150">
       </el-table-column>
-      <el-table-column prop="tid" label="教师号" width="150">
+      <el-table-column prop="tid" label="Instructor ID" width="150">
       </el-table-column>
-      <el-table-column prop="tname" label="教师名称" width="150">
+      <el-table-column prop="tname" label="Instructor Name" width="150">
       </el-table-column>
-      <el-table-column label="操作" width="260" fixed="right">
+      <el-table-column label="Actions" width="260" fixed="right">
         <template slot-scope="scope">
-          <el-popconfirm confirm-button-text='删除' cancel-button-text='取消' icon="el-icon-info" icon-color="red"
-            title="删除不可复原" @confirm="deleteCourseTeacher(scope.row)">
-            <el-button slot="reference" type="danger">删除</el-button>
+          <el-popconfirm confirm-button-text='Delete' cancel-button-text='Cancel' icon="el-icon-info" icon-color="red"
+            title="Deletion cannot be undone" @confirm="deleteCourseTeacher(scope.row)">
+            <el-button slot="reference" type="danger">Delete</el-button>
           </el-popconfirm>
         </template>
       </el-table-column>
@@ -44,14 +44,14 @@ export default {
         if (resp.data === true) {
           that.$message({
             showClose: true,
-            message: '选课成功',
+            message: 'Course selected successfully',
             type: 'success'
           });
         }
         else {
           that.$message({
             showClose: true,
-            message: '选课出错，请联系管理员',
+            message: 'Selection failed, please contact the administrator',
             type: 'error'
           });
         }
@@ -64,7 +64,7 @@ export default {
         if (resp.data === true) {
           that.$message({
             showClose: true,
-            message: '删除成功',
+            message: 'Deleted successfully',
             type: 'success'
           });
           window.location.reload()
@@ -72,7 +72,7 @@ export default {
         else {
           that.$message({
             showClose: true,
-            message: '删除出错，请查询数据库连接',
+            message: 'Deletion failed, please check the database connection',
             type: 'error'
           });
         }

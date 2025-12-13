@@ -1,32 +1,32 @@
 <template>
   <div  style="display: flex;flex-direction: column;align-items: center; ">
-    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">学生成绩查询</div>
+    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Student Grade Lookup</div>
     <el-form style="display: flex;flex-direction: row;">
-      <el-form-item label="选择学期" style="display: flex;flex-direction: row;">
-        <el-select v-model="term" placeholder="请选择学期">
+      <el-form-item label="Select Term" style="display: flex;flex-direction: row;">
+        <el-select v-model="term" placeholder="Please choose a term">
           <el-option v-for="(item, index) in termList" :key="index" :label="item" :value="item"></el-option>
         </el-select>
       </el-form-item>
     </el-form>
     <el-card >
-      <div style="width: 100%;text-align: center;color: black;font-size: 30px;font-weight: bolder;margin-bottom: 20px;">查询结果</div>
+      <div style="width: 100%;text-align: center;color: black;font-size: 30px;font-weight: bolder;margin-bottom: 20px;">Search Results</div>
       <el-table :data="tableData" border >
         
-        <el-table-column fixed prop="cid" label="课号" width="150">
+        <el-table-column fixed prop="cid" label="Course ID" width="150">
         </el-table-column>
-        <el-table-column prop="cname" label="课程号" width="150">
+        <el-table-column prop="cname" label="Course Code" width="150">
         </el-table-column>
-        <el-table-column prop="tid" label="教师号" width="150">
+        <el-table-column prop="tid" label="Instructor ID" width="150">
         </el-table-column>
-        <el-table-column prop="tname" label="教师名称" width="150">
+        <el-table-column prop="tname" label="Instructor Name" width="150">
         </el-table-column>
-        <el-table-column prop="ccredit" label="学分" width="150">
+        <el-table-column prop="ccredit" label="Credits" width="150">
         </el-table-column>
-        <el-table-column prop="grade" label="成绩" width="150">
+        <el-table-column prop="grade" label="Grade" width="150">
         </el-table-column>
       </el-table>
       <p>
-        平均成绩：{{ avg }}
+        Average grade: {{ avg }}
       </p>
       <el-pagination background layout="prev, pager, next" :total="total" :page-size="pageSize"
         @current-change="changePage">

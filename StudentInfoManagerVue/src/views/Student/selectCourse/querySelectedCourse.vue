@@ -1,25 +1,25 @@
 <template>
   <div  style="display: flex;flex-direction: column;align-items: center; ">
-    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">已选课程</div>
+    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Selected Courses</div>
     <el-card >
      
       <el-table :data="tableData" border style="width: 100%">
-        <el-table-column fixed prop="cid" label="课号" width="150">
+        <el-table-column fixed prop="cid" label="Course ID" width="150">
         </el-table-column>
-        <el-table-column prop="cname" label="课程号" width="150">
+        <el-table-column prop="cname" label="Course Code" width="150">
         </el-table-column>
-        <el-table-column prop="tid" label="教师号" width="150">
+        <el-table-column prop="tid" label="Instructor ID" width="150">
         </el-table-column>
-        <el-table-column prop="tname" label="教师名称" width="150">
+        <el-table-column prop="tname" label="Instructor Name" width="150">
         </el-table-column>
-        <el-table-column prop="ccredit" label="学分" width="150">
+        <el-table-column prop="ccredit" label="Credits" width="150">
         </el-table-column>
-        <el-table-column label="操作" width="260" fixed="right">
+        <el-table-column label="Actions" width="260" fixed="right">
 
           <template slot-scope="scope">
-            <el-popconfirm confirm-button-text='退课' cancel-button-text='取消' icon="el-icon-info" title="确定退课？"
+            <el-popconfirm confirm-button-text='Drop' cancel-button-text='Cancel' icon="el-icon-info" title="Drop this course?"
               @confirm="deleteSCT(scope.row)">
-              <el-button slot="reference" type="danger">退课</el-button>
+              <el-button slot="reference" type="danger">Drop Course</el-button>
             </el-popconfirm>
           </template>
         </el-table-column>
@@ -51,7 +51,7 @@ export default {
         if (resp.data === true) {
           that.$message({
             showClose: true,
-            message: '退课成功',
+            message: 'Course dropped successfully',
             type: 'success'
           });
           window.location.reload()
@@ -59,7 +59,7 @@ export default {
         else {
           that.$message({
             showClose: true,
-            message: '退课失败，请联系管理员',
+            message: 'Drop failed, please contact the administrator',
             type: 'error'
           });
         }

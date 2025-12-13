@@ -1,30 +1,30 @@
 <template>
   <div >
-    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 20px;">查询结果</div>
+    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 20px;">Search Results</div>
     <el-table :data="tableData" border stripe style="width: 70%">
-      <el-table-column prop="cid" label="课程号" width="150">
+      <el-table-column prop="cid" label="Course ID" width="150">
       </el-table-column>
-      <el-table-column prop="cname" label="课程名" width="150">
+      <el-table-column prop="cname" label="Course Name" width="150">
       </el-table-column>
-      <el-table-column prop="tid" label="工号" width="100">
+      <el-table-column prop="tid" label="Teacher ID" width="100">
       </el-table-column>
-      <el-table-column prop="tname" label="教师名" width="100">
+      <el-table-column prop="tname" label="Instructor Name" width="100">
       </el-table-column>
-      <el-table-column prop="sid" label="学号" width="100">
+      <el-table-column prop="sid" label="Student ID" width="100">
       </el-table-column>
-      <el-table-column prop="sname" label="学生名" width="100">
+      <el-table-column prop="sname" label="Student Name" width="100">
       </el-table-column>
-      <el-table-column prop="grade" label="成绩" width="100">
+      <el-table-column prop="grade" label="Grade" width="100">
       </el-table-column>
-      <el-table-column prop="term" label="学期" width="100">
+      <el-table-column prop="term" label="Term" width="100">
       </el-table-column>
-      <el-table-column label="操作" width="260" fixed="right">
+      <el-table-column label="Actions" width="260" fixed="right">
         <template slot-scope="scope">
-          <el-popconfirm confirm-button-text='删除' cancel-button-text='取消' icon="el-icon-info" icon-color="red"
-            title="删除不可复原" @confirm="deleteTeacher(scope.row)">
-            <el-button slot="reference" type="danger">删除</el-button>
+          <el-popconfirm confirm-button-text='Delete' cancel-button-text='Cancel' icon="el-icon-info" icon-color="red"
+            title="Deletion cannot be undone" @confirm="deleteTeacher(scope.row)">
+            <el-button slot="reference" type="danger">Delete</el-button>
           </el-popconfirm>
-          <el-button @click="editor(scope.row)" type="primary">编辑</el-button>
+          <el-button @click="editor(scope.row)" type="primary">Edit</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -52,7 +52,7 @@ export default {
         if (resp.data === true) {
           that.$message({
             showClose: true,
-            message: '删除成功',
+            message: 'Deleted successfully',
             type: 'success'
           });
           window.location.reload()
@@ -60,14 +60,14 @@ export default {
         else {
           that.$message({
             showClose: true,
-            message: '删除出错，请查询数据库连接',
+            message: 'Deletion failed, please check the database connection',
             type: 'error'
           });
         }
       }).catch(function (error) {
         that.$message({
           showClose: true,
-          message: '删除出错，存在外键依赖',
+          message: 'Deletion failed due to foreign key constraints',
           type: 'error'
         });
       })

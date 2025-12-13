@@ -2,14 +2,14 @@
   <div>
     <el-container>
       <el-main style="display: flex;flex-direction: column;align-items: center; ">
-        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">当前学期开设的课程</div>
+        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Courses Offered This Term</div>
         <el-card>
           <el-table :data="tableData" border stripe style="width: 100%">
-            <el-table-column fixed prop="cid" label="课程号" width="150">
+            <el-table-column fixed prop="cid" label="Course ID" width="150">
             </el-table-column>
-            <el-table-column prop="cname" label="课程名" width="150">
+            <el-table-column prop="cname" label="Course Name" width="150">
             </el-table-column>
-            <el-table-column prop="ccredit" label="学分" width="150">
+            <el-table-column prop="ccredit" label="Credits" width="150">
             </el-table-column>
           </el-table>
           <el-pagination background layout="prev, pager, next" :total="total" :page-size="pageSize"

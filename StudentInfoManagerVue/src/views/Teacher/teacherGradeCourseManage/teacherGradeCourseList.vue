@@ -2,26 +2,26 @@
   <div>
 
     <el-table :data="tableData" border stripe style="width: 100%">
-      <el-table-column fixed prop="cid" label="课程号" >
+      <el-table-column fixed prop="cid" label="Course ID" >
       </el-table-column>
-      <el-table-column prop="cname" label="课程名">
+      <el-table-column prop="cname" label="Course Name">
       </el-table-column>
-      <el-table-column fixed prop="sid" label="学号">
+      <el-table-column fixed prop="sid" label="Student ID">
       </el-table-column>
-      <el-table-column prop="sname" label="学生名">
+      <el-table-column prop="sname" label="Student Name">
       </el-table-column>
-      <el-table-column prop="grade" label="成绩">
+      <el-table-column prop="grade" label="Grade">
       </el-table-column>
-      <el-table-column prop="term" label="学期">
+      <el-table-column prop="term" label="Term">
       </el-table-column>
-      <el-table-column label="操作" width="140" fixed="right">
+      <el-table-column label="Actions" width="140" fixed="right">
         <template slot-scope="scope">
-          <el-button @click="editor(scope.row)" type="primary">编辑</el-button>
+          <el-button @click="editor(scope.row)" type="primary">Edit</el-button>
         </template>
       </el-table-column>
     </el-table>
     <p>
-      平均成绩：{{ avg }}
+      Average grade: {{ avg }}
     </p>
     <el-pagination background layout="prev, pager, next" :total="total" :page-size="pageSize"
       @current-change="changePage">

@@ -2,21 +2,21 @@
   <div>
     <el-container>
       <el-main style="display: flex;flex-direction: column;align-items: center; ">
-        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">教师查询</div>
+        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Teacher Search</div>
         <el-card style="margin-bottom: 20px;">
           <el-form :inline="true" :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px"
             class="demo-ruleForm">
-            <el-form-item label="工号" prop="tid">
+            <el-form-item label="Teacher ID" prop="tid">
               <el-input v-model.number="ruleForm.tid"></el-input>
             </el-form-item>
-            <el-form-item label="教师姓名" prop="tname">
+            <el-form-item label="Teacher Name" prop="tname">
               <el-input v-model="ruleForm.tname"></el-input>
             </el-form-item>
-            <el-form-item label="模糊查询" prop="fuzzy">
+            <el-form-item label="Fuzzy Search" prop="fuzzy">
               <el-switch v-model="ruleForm.fuzzy"></el-switch>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="resetForm('ruleForm')">重置</el-button>
+              <el-button type="primary" @click="resetForm('ruleForm')">Reset</el-button>
             </el-form-item>
           </el-form>
         </el-card>
@@ -40,7 +40,7 @@ export default {
       },
       rules: {
         tid: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
         tname: [
 

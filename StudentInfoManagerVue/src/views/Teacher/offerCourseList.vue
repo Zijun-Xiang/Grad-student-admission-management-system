@@ -1,17 +1,17 @@
 <template>
   <div>
     <el-table :data="tableData" border stripe style="width: 100%">
-      <el-table-column fixed prop="cid" label="课程号" width="150">
+      <el-table-column fixed prop="cid" label="Course ID" width="150">
       </el-table-column>
-      <el-table-column prop="cname" label="课程名" width="150">
+      <el-table-column prop="cname" label="Course Name" width="150">
       </el-table-column>
-      <el-table-column prop="ccredit" label="学分" width="150">
+      <el-table-column prop="ccredit" label="Credits" width="150">
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column label="Actions" width="160" fixed="right">
         <template slot-scope="scope">
-          <el-popconfirm confirm-button-text='选择' cancel-button-text='取消' icon="el-icon-info" icon-color="red"
-            title="确定开设？" @confirm="offer(scope.row)">
-            <el-button slot="reference" type="success">开设</el-button>
+          <el-popconfirm confirm-button-text='Confirm' cancel-button-text='Cancel' icon="el-icon-info" icon-color="red"
+            title="Confirm offering?" @confirm="offer(scope.row)">
+            <el-button slot="reference" type="success">Offer</el-button>
           </el-popconfirm>
         </template>
       </el-table-column>
@@ -34,7 +34,7 @@ export default {
         if (resp.data === true) {
           that.$message({
             showClose: true,
-            message: '删除成功',
+            message: 'Deleted successfully',
             type: 'success'
           });
           window.location.reload()
@@ -42,7 +42,7 @@ export default {
         else {
           that.$message({
             showClose: true,
-            message: '删除出错，请查询数据库连接',
+            message: 'Deletion failed, please check the database connection',
             type: 'error'
           });
         }
@@ -58,7 +58,7 @@ export default {
         if (resp.data === true) {
           that.$message({
             showClose: true,
-            message: '开设成功',
+            message: 'Offering created successfully',
             type: 'success'
           });
           window.location.reload()
@@ -66,7 +66,7 @@ export default {
         else {
           that.$message({
             showClose: true,
-            message: '开设失败，请联系管理员',
+            message: 'Creation failed, please contact the administrator',
             type: 'error'
           });
         }

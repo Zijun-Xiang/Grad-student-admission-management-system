@@ -2,23 +2,23 @@
   <div >
     <el-container>
       <el-main style="display: flex;flex-direction: column;align-items: center; ">
-        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">学生查询</div>
+        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Student Search</div>
         <el-card style="margin-bottom: 20px;">  
           <el-form :inline="true" :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px"
             class="demo-ruleForm">
-            <el-form-item label="学号" prop="sid">
+            <el-form-item label="Student ID" prop="sid">
               <el-input v-model.number="ruleForm.sid"></el-input>
             </el-form-item>
-            <el-form-item label="学生姓名" prop="sname">
+            <el-form-item label="Student Name" prop="sname">
               <el-input v-model="ruleForm.sname"></el-input>
             </el-form-item>
-            <el-form-item label="模糊查询" prop="password">
+            <el-form-item label="Fuzzy Search" prop="password">
               <el-switch v-model="ruleForm.password"></el-switch>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="submitForm('ruleForm')">查询</el-button>
-              <el-button @click="resetForm('ruleForm')" type="warning">重置</el-button>
-              <el-button @click="flush('ruleForm')">刷新</el-button>
+              <el-button type="primary" @click="submitForm('ruleForm')">Search</el-button>
+              <el-button @click="resetForm('ruleForm')" type="warning">Reset</el-button>
+              <el-button @click="flush('ruleForm')">Refresh</el-button>
             </el-form-item>
           </el-form>
         </el-card>
@@ -38,7 +38,7 @@ export default {
       },
       rules: {
         sid: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
         sname: [
 

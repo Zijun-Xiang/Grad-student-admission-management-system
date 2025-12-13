@@ -2,59 +2,59 @@
   <div>
     <el-container>
       <el-main style="display: flex;flex-direction: column;align-items: center; ">
-        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">学生成绩查询</div>
+        <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Student Grade Search</div>
         <el-card style="width: 90%;">
           <el-form :inline="true" :model="ruleForm" :rules="rules" ref="ruleForm" label-width="120px"
             class="demo-ruleForm" style="height: 100%;;width: 100%;display: flex;flex-direction: column;">
             <div style="width: 100%;display: flex;flex-direction: row;">
-            <el-form-item label="学号" prop="sid" style="display: flex;flex-direction: row;">
+            <el-form-item label="Student ID" prop="sid" style="display: flex;flex-direction: row;">
               <el-input v-model.number="ruleForm.sid"></el-input>
             </el-form-item>
-            <el-form-item label="学生名" prop="sname" style="display: flex;flex-direction: row;">
+            <el-form-item label="Student Name" prop="sname" style="display: flex;flex-direction: row;">
               <el-input v-model="ruleForm.sname"></el-input>
             </el-form-item>
-            <el-form-item label="模糊查询" prop="sFuzzy" style="display: flex;flex-direction: row;">
+            <el-form-item label="Fuzzy Search" prop="sFuzzy" style="display: flex;flex-direction: row;">
               <el-switch v-model="ruleForm.sFuzzy"></el-switch>
             </el-form-item>
           </div>
           <div style="width: 100%;display: flex;flex-direction: row;">
-            <el-form-item label="工号" prop="tid"  style="display: flex;flex-direction: row;">
+            <el-form-item label="Teacher ID" prop="tid"  style="display: flex;flex-direction: row;">
               <el-input v-model.number="ruleForm.tid"></el-input>
             </el-form-item>
-            <el-form-item label="教师名" prop="tname"  style="display: flex;flex-direction: row;">
+            <el-form-item label="Instructor Name" prop="tname"  style="display: flex;flex-direction: row;">
               <el-input v-model="ruleForm.tname"></el-input>
             </el-form-item>
-            <el-form-item label="模糊查询" prop="tFuzzy"  style="display: flex;flex-direction: row;">
+            <el-form-item label="Fuzzy Search" prop="tFuzzy"  style="display: flex;flex-direction: row;">
               <el-switch v-model="ruleForm.tFuzzy"></el-switch>
             </el-form-item>
             </div>
             <div style="width: 100%;display: flex;flex-direction: row;">
-            <el-form-item label="课程号" prop="cid"  style="display: flex;flex-direction: row;">
+            <el-form-item label="Course ID" prop="cid"  style="display: flex;flex-direction: row;">
               <el-input v-model.number="ruleForm.cid"></el-input>
             </el-form-item>
-            <el-form-item label="课程名" prop="cname"  style="display: flex;flex-direction: row;">
+            <el-form-item label="Course Name" prop="cname"  style="display: flex;flex-direction: row;">
               <el-input v-model="ruleForm.cname"></el-input>
             </el-form-item>
-            <el-form-item label="模糊查询" prop="cFuzzy"  style="display: flex;flex-direction: row;">
+            <el-form-item label="Fuzzy Search" prop="cFuzzy"  style="display: flex;flex-direction: row;">
               <el-switch v-model="ruleForm.cFuzzy"></el-switch>
             </el-form-item>
             </div>
             <div style="width: 100%;display: flex;flex-direction: row;">
-            <el-form-item label="成绩下限" prop="lowBound"  style="display: flex;flex-direction: row;">
+            <el-form-item label="Minimum Grade" prop="lowBound"  style="display: flex;flex-direction: row;">
               <el-input v-model.number="ruleForm.lowBound"></el-input>
             </el-form-item>
-            <el-form-item label="成绩上限" prop="highBound"  style="display: flex;flex-direction: row;">
+            <el-form-item label="Maximum Grade" prop="highBound"  style="display: flex;flex-direction: row;">
               <el-input v-model.number="ruleForm.highBound"></el-input>
             </el-form-item>
           </div>
-            <el-form-item label="选择学期"  style="display: flex;flex-direction: row;">
-              <el-select v-model="ruleForm.term" placeholder="请选择学期">
+            <el-form-item label="Select Term"  style="display: flex;flex-direction: row;">
+              <el-select v-model="ruleForm.term" placeholder="Please choose a term">
                 <el-option v-for="(item, index) in termList" :key="index" :label="item" :value="item"></el-option>
               </el-select>
             </el-form-item>
            
             <el-form-item style="width: 100%; display: flex;align-items: center;">
-              <el-button type="primary" @click="resetForm('ruleForm')">重置</el-button>
+              <el-button type="primary" @click="resetForm('ruleForm')">Reset</el-button>
             </el-form-item>
           </el-form>
         </el-card>
@@ -88,21 +88,21 @@ export default {
       },
       rules: {
         cid: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
         tid: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
         sid: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
         cname: [
         ],
         lowBound: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
         highBound: [
-          { type: 'number', message: '必须是数字类型' }
+          { type: 'number', message: 'Must be a number' }
         ],
       }
     };

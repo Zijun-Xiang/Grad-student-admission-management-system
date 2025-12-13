@@ -1,23 +1,23 @@
 <template>
   <div style="display: flex;flex-direction: column;align-items: center; ">
-    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 20px;">学生成绩修改</div>
+    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 20px;">Edit Student Grade</div>
     <el-card style="width: 40%;">
       <el-form style="width: 100%" :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px"
         class="demo-ruleForm">
-        <el-form-item label="课程名称：" prop="cname" style="width: 80%;">
+        <el-form-item label="Course Name:" prop="cname" style="width: 80%;">
           <el-input v-model="ruleForm.cname" :value="ruleForm.cname" :disabled="true"></el-input>
         </el-form-item>
-        <el-form-item label="教师名：" prop="tname" style="width: 80%;">
+        <el-form-item label="Instructor Name:" prop="tname" style="width: 80%;">
           <el-input v-model="ruleForm.tname" :value="ruleForm.tname" :disabled="true"></el-input>
         </el-form-item>
-        <el-form-item label="学生名：" prop="sname" style="width: 80%;">
+        <el-form-item label="Student Name:" prop="sname" style="width: 80%;">
           <el-input v-model="ruleForm.sname" :value="ruleForm.sname" :disabled="true"></el-input>
         </el-form-item>
-        <el-form-item label="分数：" prop="grade" style="width: 80%;">
+        <el-form-item label="Score:" prop="grade" style="width: 80%;">
           <el-input v-model.number="ruleForm.grade" :value="ruleForm.grade"></el-input>
         </el-form-item>
         <el-form-item class="btns-wrapper" style="width: 100%; display: flex ;">
-          <el-button type="primary" @click="submitForm('ruleForm')">提交</el-button>
+          <el-button type="primary" @click="submitForm('ruleForm')">Submit</el-button>
         </el-form-item>
 
       </el-form>
@@ -29,13 +29,13 @@ export default {
   data() {
     var checkGrade = (rule, value, callback) => {
       if (!value) {
-        return callback(new Error('成绩不能为空'));
+        return callback(new Error('Grade cannot be empty'));
       }
       if (!Number.isInteger(value)) {
-        callback(new Error('请输入数字值'));
+        callback(new Error('Please enter a numeric value'));
       } else {
         if (value > 100 || value < 0) {
-          callback(new Error('成绩范围 [0 - 100]'));
+          callback(new Error('Grade must be between 0 and 100'));
         } else {
           callback();
         }
@@ -53,8 +53,8 @@ export default {
       },
       rules: {
         grade: [
-          { required: true, message: '请输入学分', trigger: 'change' },
-          { type: 'number', message: '请输入数字', trigger: 'change' },
+          { required: true, message: 'Please enter a grade', trigger: 'change' },
+          { type: 'number', message: 'Please enter a number', trigger: 'change' },
           { validator: checkGrade, trigger: 'blur' }
         ],
       }
@@ -89,12 +89,12 @@ export default {
             if (resp.data === true) {
               that.$message({
                 showClose: true,
-                message: '编辑成功',
+                message: 'Updated successfully',
                 type: 'success'
               });
             }
             else {
-              that.$message.error('编辑失败，请检查数据库');
+              that.$message.error('Update failed, please check the database');
             }
             if (sessionStorage.getItem('type') === 'admin') {
               that.$router.push("/queryGradeCourse")

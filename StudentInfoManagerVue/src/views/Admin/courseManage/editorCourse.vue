@@ -1,16 +1,16 @@
 <template>
   <div style="display: flex;flex-direction: column;align-items: center; ">
-    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">课程信息修改</div>
+    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Edit Course Information</div>
     <el-form style="width: 90%" :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm">
-      <el-form-item label="课程名称" prop="cname">
+      <el-form-item label="Course Name" prop="cname">
         <el-input v-model="ruleForm.cname" :value="ruleForm.cname"></el-input>
       </el-form-item>
-      <el-form-item label="学分" prop="ccredit">
+      <el-form-item label="Credits" prop="ccredit">
         <el-input v-model.number="ruleForm.ccredit" :value="ruleForm.ccredit"></el-input>
       </el-form-item>
       <el-form-item  class="btns-wrapper" style="width: 100%; display: flex ;">
-                <el-button type="primary" @click="submitForm('ruleForm')">提交</el-button>
-                <el-button @click="resetForm('ruleForm')" type="warning">重置</el-button>
+                <el-button type="primary" @click="submitForm('ruleForm')">Submit</el-button>
+                <el-button @click="resetForm('ruleForm')" type="warning">Reset</el-button>
               </el-form-item>
 
 
@@ -29,11 +29,11 @@ export default {
       },
       rules: {
         cname: [
-          { required: true, message: '请输入名称', trigger: 'blur' },
+          { required: true, message: 'Please enter a name', trigger: 'blur' },
         ],
         ccredit: [
-          { required: true, message: '请输入学分', trigger: 'change' },
-          { type: 'number', message: '请输入数字', trigger: 'change'},
+          { required: true, message: 'Please enter credits', trigger: 'change' },
+          { type: 'number', message: 'Please enter a number', trigger: 'change'},
         ],
       }
     };
@@ -62,12 +62,12 @@ export default {
             if (resp.data === true) {
               that.$message({
                 showClose: true,
-                message: '编辑成功',
+                message: 'Updated successfully',
                 type: 'success'
               });
             }
             else {
-              that.$message.error('编辑失败，请检查数据库');
+              that.$message.error('Update failed, please check the database');
             }
             that.$router.push("/queryCourse")
           })

@@ -1,20 +1,20 @@
 <template>
   <div>
     <el-table :data="tableData" border show-header stripe style="width: 100%">
-      <el-table-column fixed prop="cid" label="课号" width="150">
+      <el-table-column fixed prop="cid" label="Course ID" width="150">
       </el-table-column>
-      <el-table-column prop="cname" label="课程号" width="150">
+      <el-table-column prop="cname" label="Course Code" width="150">
       </el-table-column>
-      <el-table-column prop="tid" label="教师号" width="150">
+      <el-table-column prop="tid" label="Instructor ID" width="150">
       </el-table-column>
-      <el-table-column prop="tname" label="教师名称" width="150">
+      <el-table-column prop="tname" label="Instructor Name" width="150">
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column label="Actions" width="160" fixed="right">
 
         <template slot-scope="scope">
-          <el-popconfirm confirm-button-text='选择' cancel-button-text='取消' title="确定选择该教师开设的课程？"
+          <el-popconfirm confirm-button-text='Select' cancel-button-text='Cancel' title="Select this instructor's course?"
             @confirm="select(scope.row)">
-            <el-button slot="reference" type="success">选择</el-button>
+            <el-button slot="reference" type="success">Select</el-button>
           </el-popconfirm>
         </template>
       </el-table-column>
@@ -45,7 +45,7 @@ export default {
         if (resp.data === '选课成功') {
           that.$message({
             showClose: true,
-            message: '选课成功',
+            message: 'Course selected successfully',
             type: 'success'
           });
         }
@@ -65,7 +65,7 @@ export default {
         if (resp.data === true) {
           that.$message({
             showClose: true,
-            message: '删除成功',
+            message: 'Deleted successfully',
             type: 'success'
           });
           window.location.reload()
@@ -73,7 +73,7 @@ export default {
         else {
           that.$message({
             showClose: true,
-            message: '删除出错，请查询数据库连接',
+            message: 'Deletion failed, please check the database connection',
             type: 'error'
           });
         }
