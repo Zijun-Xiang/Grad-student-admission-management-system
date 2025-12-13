@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/student_info_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
+    username: root
+    password: root
+
+mybatis:
+  type-aliases-package: com.rabbiter.si.entity
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    cache-enabled: false
+    local-cache-scope: statement
+
+server:
+  port: 9451
