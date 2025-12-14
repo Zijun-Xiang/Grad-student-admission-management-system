@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from "react";
 import Layout from '../components/layout/Layout';
-import axios from "axios";
 import './Courses.css'
-const api = axios.create({
-    baseURL: "http://127.0.0.1:8000/api",
-});
+import { api, formatAxiosError } from "../api/axiosClient";
 
 export default function Courses() {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(false);
     const [filterLevel, setFilterLevel] = useState("");
+    const [apiError, setApiError] = useState("");
     // state for adding a new course
     const [newCourse, setNewCourse] = useState({
         course_code: "",
@@ -32,6 +30,7 @@ export default function Courses() {
     async function fetchCourses() {
         try {
             setLoading(true);
+            setApiError("");
             const params = {};
             if (filterLevel) params.level = filterLevel;
             const response = await api.get("/courses", { params });
@@ -43,7 +42,7 @@ export default function Courses() {
             setCourses(normalized);
         } catch (error) {
             console.error("Error fetching courses:", error);
-            alert("Failed to fetch courses. Please try again later.", error);
+            setApiError(formatAxiosError(error));
         }
         finally {
             setLoading(false);
@@ -52,6 +51,7 @@ export default function Courses() {
     //function to import courses from a json file
     async function importCoursesFromJson(jsonFile) {
         try {
+            setApiError("");
             // First pass: Create all courses without prerequisites
             const courseCodeMap = {}; // Maps course_code to the newly created course ID
             
@@ -72,6 +72,8 @@ export default function Courses() {
                     const existing = existingResponse.data.find(c => c.course_code === course.course_code);
                     if (existing) {
                         courseCodeMap[course.course_code] = existing.id;
+                    } else {
+                        throw error;
                     }
                 }
             }
@@ -104,12 +106,13 @@ export default function Courses() {
             await fetchCourses();
         } catch (error) {
             console.error("Error importing courses:", error);
-            alert("Failed to import courses. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
     //function to export courses to a json file
     async function exportCoursesToJson() {
         try {
+            setApiError("");
             const response = await api.get("/courses");
             const data = response.data;
             const json = JSON.stringify(data, null, 2);
@@ -123,13 +126,14 @@ export default function Courses() {
             document.body.removeChild(link);
         } catch (error) {
             console.error("Error exporting courses:", error);
-            alert("Failed to export courses. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
     // adds a new course to the database
     async function handleAddCourse(e) {
         e.preventDefault();
         try {
+            setApiError("");
             await api.post("/courses", newCourse);
             setNewCourse({
                 course_code: "",
@@ -140,19 +144,19 @@ export default function Courses() {
             await fetchCourses();
         } catch (error) {
             console.error("Error adding course:", error);
-            alert("Failed to add course. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
     // deletes a course from the database
     async function handleDeleteCourse(course) {
         if (!window.confirm(`Are you sure you want to delete ${course.course_code}?`)) return;
         try {
+            setApiError("");
             await api.delete(`/courses/${course.id}`);
             await fetchCourses();
         } catch (error) {
             console.error("Error deleting course:", error);
-            const errorMsg = error.response?.data?.message || error.message || "Unknown error";
-            alert(`Failed to delete course: ${errorMsg}`);
+            setApiError(formatAxiosError(error));
         }
     }
     // starts editing a course
@@ -174,13 +178,14 @@ export default function Courses() {
     // saves the edited course to the database
     async function saveEditing(courseId) {
         try {
+            setApiError("");
             await api.put(`/courses/${courseId}`, editingCourse);
             setEditingID(null);
             setEditingCourse({});
             await fetchCourses();
         } catch (error) {
             console.error("Error updating course:", error);
-            alert("Failed to update course. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
     // function to handle adding a prerequisite group
@@ -193,13 +198,14 @@ export default function Courses() {
         }
 
         try {
+            setApiError("");
             await api.post(`/courses/${course_id}/prerequisite-groups`,
             { prerequisite_ids: prerequisiteIds });
             setGroupForm({ course_id: "", prerequisiteIds: [] });
             await fetchCourses();
         } catch (error) {
             console.error("Error adding prerequisite group:", error);
-            alert("Failed to add prerequisite group. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
 
@@ -207,11 +213,12 @@ export default function Courses() {
     async function handleRemovePrerequisiteGroup(courseId, groupId) {
         if (!window.confirm(`Are you sure you want to remove this prerequisite group?`)) return;
         try {
+            setApiError("");
             await api.delete(`/courses/${courseId}/prerequisite-groups/${groupId}`);
             await fetchCourses();
         } catch (error) {
             console.error("Error removing prerequisite group:", error);
-            alert("Failed to remove prerequisite group. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
 
@@ -234,6 +241,16 @@ export default function Courses() {
         <Layout>
             <div className="page-shell courses-page">
                 <div className="page-grid wide">
+                {apiError ? (
+                    <div className="card" role="alert" style={{ borderColor: "crimson" }}>
+                        <div className="card-header">
+                            <span className="card-title" style={{ color: "crimson" }}>API Error</span>
+                        </div>
+                        <div className="card-body" style={{ color: "crimson", whiteSpace: "pre-wrap" }}>
+                            {apiError}
+                        </div>
+                    </div>
+                ) : null}
                 {/* Filter by course level */}
                 <div className="card">
                     <div className="card-header">
