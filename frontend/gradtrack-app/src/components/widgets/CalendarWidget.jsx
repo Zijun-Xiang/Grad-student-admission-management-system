@@ -3,7 +3,7 @@ import './CalendarWidget.css';
 import API_CONFIG from '../../api/config';
 import { UserContext } from '../../context/UserContext';
 
-export default function CalendarWidget() {
+export default function CalendarWidget({ className = '' }) {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useContext(UserContext);
@@ -53,7 +53,7 @@ export default function CalendarWidget() {
   }, [reminders]);
 
   return (
-    <div className="card reminder-card">
+    <div className={`card reminder-card ${className}`.trim()}>
       <div className="card-header">
         <span className="card-title">Reminders</span>
         <span className="pill">Total {reminders.length}</span>

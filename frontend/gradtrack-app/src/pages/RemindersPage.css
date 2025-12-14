@@ -3,6 +3,21 @@
   flex-direction: column;
 }
 
+.reminders-list-card {
+  min-height: 560px;
+}
+
+.reminders-list-card .card-body {
+  padding-top: 1.25rem;
+  padding-bottom: 1.5rem;
+}
+
+.reminders-list-card .reminder-list {
+  max-height: 480px;
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
 .reminder-form {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr auto;

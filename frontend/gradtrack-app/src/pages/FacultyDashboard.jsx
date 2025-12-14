@@ -61,7 +61,7 @@ const FacultyDashboard = () => {
             </div>
           </div>
 
-          <CalendarWidget />
+          <CalendarWidget className="grid-span-2 reminder-prominent" />
 
           <div className="card">
             <div className="card-header">

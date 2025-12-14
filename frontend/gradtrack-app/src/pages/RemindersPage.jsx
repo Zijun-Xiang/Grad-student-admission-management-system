@@ -140,7 +140,7 @@ export default function RemindersPage() {
             </div>
           </div>
 
-          <div className="card table-card">
+          <div className="card table-card grid-span-2 reminders-list-card">
             <div className="card-header">
               <span className="card-title">Reminder List</span>
               <span className="pill">GET</span>

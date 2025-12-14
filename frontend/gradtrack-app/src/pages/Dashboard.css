@@ -62,3 +62,7 @@
 .card-body-flush {
   padding: 0;
 }
+
+.reminder-prominent {
+  min-height: 520px;
+}

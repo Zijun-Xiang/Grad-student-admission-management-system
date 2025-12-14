@@ -171,14 +171,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Reminders</span>
-            </div>
-            <div className="card-body">
-              <CalendarWidget />
-            </div>
-          </div>
+          <CalendarWidget className="grid-span-2 reminder-prominent" />
         </div>
       </div>
     </Layout>
