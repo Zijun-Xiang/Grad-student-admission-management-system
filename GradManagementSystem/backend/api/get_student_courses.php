@@ -1,23 +1,22 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+require_once __DIR__ . '/../bootstrap.php';
+
 include_once '../db.php';
 
-$student_id = isset($_GET['student_id']) ? $_GET['student_id'] : die();
+$user = require_login();
+$studentId = effective_student_id_for_request($user, isset($_GET['student_id']) ? (string)$_GET['student_id'] : null);
 
 try {
-    // 获取学生已注册的课程
-    $query = "SELECT sr.course_code, cc.course_name 
+    $query = "SELECT sr.course_code, cc.course_name, cc.credits
               FROM student_registrations sr
               JOIN core_courses cc ON sr.course_code = cc.course_code
               WHERE sr.student_id = :sid";
     $stmt = $pdo->prepare($query);
-    $stmt->bindParam(':sid', $student_id);
+    $stmt->bindParam(':sid', $studentId);
     $stmt->execute();
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    echo json_encode(["status" => "success", "data" => $data]);
+    send_json(['status' => 'success', 'data' => $data]);
 } catch (Exception $e) {
-    echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+    send_json(['status' => 'error', 'message' => $e->getMessage()], 500);
 }
-?>

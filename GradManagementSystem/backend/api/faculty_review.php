@@ -1,59 +1,93 @@
 <?php
-// backend/api/faculty_review.php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+require_once __DIR__ . '/../bootstrap.php';
+require_login(['faculty']);
+require_method('POST');
 
 include_once '../db.php';
 
-$data = json_decode(file_get_contents("php://input"));
+$data = get_json_input();
+$docId = (string)($data['doc_id'] ?? '');
+$action = (string)($data['action'] ?? '');
+$comment = isset($data['comment']) ? (string)$data['comment'] : null;
+$termCode = isset($data['term_code']) ? (string)$data['term_code'] : null;
 
-if (!empty($data->doc_id) && !empty($data->student_id) && !empty($data->action)) {
-    
-    $doc_id = $data->doc_id;
-    $student_id = $data->student_id;
-    $action = $data->action; // 'approve' 或 'reject'
-    $comment = isset($data->comment) ? $data->comment : null; // 批注
+if ($docId === '' || ($action !== 'approve' && $action !== 'reject')) {
+    send_json(['status' => 'error', 'message' => 'Missing/invalid data.'], 400);
+}
 
-    try {
-        if ($action === 'approve') {
-            // === 动作 A: 批准 ===
-            // 1. 更新文档状态为 approved
-            $query_doc = "UPDATE documents SET status = 'approved', admin_comment = :comment WHERE doc_id = :did";
-            $stmt = $pdo->prepare($query_doc);
-            $stmt->bindParam(':comment', $comment); // 批准也可以写“Good job”之类的
-            $stmt->bindParam(':did', $doc_id);
-            $stmt->execute();
-
-            // 2. 解除该学生的 Admission Hold
-            // 假设 Hold 类型是 'admission_letter'
-            $query_hold = "UPDATE holds SET is_active = FALSE, resolved_at = NOW() 
-                           WHERE student_id = :sid AND hold_type = 'admission_letter'";
-            $stmt_hold = $pdo->prepare($query_hold);
-            $stmt_hold->bindParam(':sid', $student_id);
-            $stmt_hold->execute();
-
-            echo json_encode(["status" => "success", "message" => "Document approved and Hold lifted."]);
-
-        } elseif ($action === 'reject') {
-            // === 动作 B: 拒绝 ===
-            // 1. 更新文档状态为 rejected，并记下批注
-            $query_doc = "UPDATE documents SET status = 'rejected', admin_comment = :comment WHERE doc_id = :did";
-            $stmt = $pdo->prepare($query_doc);
-            $stmt->bindParam(':comment', $comment);
-            $stmt->bindParam(':did', $doc_id);
-            $stmt->execute();
-            
-            // 注意：拒绝时不解除 Hold，Hold 依然是 TRUE
-            echo json_encode(["status" => "success", "message" => "Document rejected."]);
-        }
-
-    } catch (Exception $e) {
-        echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+try {
+    $stmtDocRow = $pdo->prepare("SELECT doc_id, student_id, doc_type FROM documents WHERE doc_id = :did LIMIT 1");
+    $stmtDocRow->bindParam(':did', $docId);
+    $stmtDocRow->execute();
+    $doc = $stmtDocRow->fetch(PDO::FETCH_ASSOC);
+    if (!$doc) {
+        send_json(['status' => 'error', 'message' => 'Document not found.'], 404);
     }
 
-} else {
-    echo json_encode(["status" => "error", "message" => "Missing data."]);
+    $studentId = (string)$doc['student_id'];
+    $docType = (string)$doc['doc_type'];
+
+    if ($action === 'approve') {
+        $stmtDoc = $pdo->prepare("UPDATE documents SET status = 'approved', admin_comment = :comment WHERE doc_id = :did");
+        $stmtDoc->bindParam(':comment', $comment);
+        $stmtDoc->bindParam(':did', $docId);
+        $stmtDoc->execute();
+
+        $holdType = null;
+        if ($docType === 'admission_letter') {
+            $holdType = 'admission_letter';
+        } elseif ($docType === 'major_professor_form') {
+            $holdType = 'major_professor_form';
+        }
+
+        if ($holdType !== null) {
+            $stmtHold = $pdo->prepare("UPDATE holds SET is_active = FALSE, resolved_at = NOW()
+                                       WHERE student_id = :sid AND hold_type = :ht AND is_active = TRUE");
+            $stmtHold->bindParam(':sid', $studentId);
+            $stmtHold->bindParam(':ht', $holdType);
+            $stmtHold->execute();
+
+            $releaseCode = null;
+            try {
+                $releaseCode = generate_registrar_code();
+                $createdBy = (string)(current_user()['id'] ?? '');
+                $payload = json_encode(['doc_id' => $docId, 'doc_type' => $docType, 'action' => 'approve']);
+                $stmtSig = $pdo->prepare(
+                    "INSERT INTO registrar_signals (student_id, hold_type, term_code, code, created_by, payload)
+                     VALUES (:sid, :ht, :term, :code, :by, :payload)"
+                );
+                $stmtSig->bindParam(':sid', $studentId);
+                $stmtSig->bindParam(':ht', $holdType);
+                $stmtSig->bindParam(':term', $termCode);
+                $stmtSig->bindParam(':code', $releaseCode);
+                $stmtSig->bindParam(':by', $createdBy);
+                $stmtSig->bindParam(':payload', $payload);
+                $stmtSig->execute();
+            } catch (Exception $e) {
+                $releaseCode = null;
+            }
+
+            send_json([
+                'status' => 'success',
+                'message' => 'Document approved and Hold lifted.',
+                'registrar_code' => $releaseCode,
+                'doc_type' => $docType,
+            ]);
+        }
+
+        send_json([
+            'status' => 'success',
+            'message' => 'Document approved.',
+            'doc_type' => $docType,
+        ]);
+    }
+
+    $stmtDoc = $pdo->prepare("UPDATE documents SET status = 'rejected', admin_comment = :comment WHERE doc_id = :did");
+    $stmtDoc->bindParam(':comment', $comment);
+    $stmtDoc->bindParam(':did', $docId);
+    $stmtDoc->execute();
+
+    send_json(['status' => 'success', 'message' => 'Document rejected.', 'doc_type' => $docType]);
+} catch (Exception $e) {
+    send_json(['status' => 'error', 'message' => $e->getMessage()], 500);
 }
-?>

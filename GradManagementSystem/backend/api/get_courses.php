@@ -1,18 +1,15 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+require_once __DIR__ . '/../bootstrap.php';
+require_login();
 
 include_once '../db.php';
 
 try {
-    // 获取所有核心课程
-    $query = "SELECT * FROM core_courses ORDER BY course_code ASC";
-    $stmt = $pdo->prepare($query);
+    $stmt = $pdo->prepare('SELECT * FROM core_courses ORDER BY course_code ASC');
     $stmt->execute();
     $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    echo json_encode(["status" => "success", "data" => $courses]);
+    send_json(['status' => 'success', 'data' => $courses]);
 } catch (Exception $e) {
-    echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+    send_json(['status' => 'error', 'message' => $e->getMessage()], 500);
 }
-?>
+

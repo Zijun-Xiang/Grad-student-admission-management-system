@@ -9,22 +9,17 @@
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label>Username / ID</label>
-          <input 
-            v-model="username" 
-            type="text" 
-            placeholder="Enter your ID (e.g. student1 or prof_jamil)" 
+          <input
+            v-model="username"
+            type="text"
+            placeholder="Enter your ID (e.g. student1 or prof_jamil)"
             required
           />
         </div>
 
         <div class="form-group">
           <label>Password</label>
-          <input 
-            v-model="password" 
-            type="password" 
-            placeholder="Enter your password" 
-            required
-          />
+          <input v-model="password" type="password" placeholder="Enter your password" required />
         </div>
 
         <div v-if="errorMessage" class="error-msg">
@@ -34,64 +29,58 @@
         <button type="submit" class="btn-primary" :disabled="isLoading">
           {{ isLoading ? 'Logging in...' : 'Login' }}
         </button>
+
+        <button type="button" class="btn-secondary" @click="router.push('/register')">Create account</button>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import axios from 'axios';
-import { useRouter } from 'vue-router';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import api from '../api/client'
 
-const router = useRouter();
+const router = useRouter()
 
-// 默认填好学生账号方便测试，你可以手动改成 prof_jamil 测试老师端
-const username = ref('student1'); 
-const password = ref('123456');
-const errorMessage = ref('');
-const isLoading = ref(false);
+const username = ref('student1')
+const password = ref('123456')
+const errorMessage = ref('')
+const isLoading = ref(false)
 
 const handleLogin = async () => {
-  isLoading.value = true;
-  errorMessage.value = '';
+  isLoading.value = true
+  errorMessage.value = ''
 
   try {
-    // 发送登录请求
-    const response = await axios.post('http://localhost:8080/api/login.php', {
+    const response = await api.post('login.php', {
       username: username.value,
-      password: password.value
-    });
+      password: password.value,
+    })
 
-    const data = response.data;
+    const data = response.data
 
     if (data.status === 'success') {
-      // 1. 保存用户信息
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // 2. 根据角色跳转不同的页面
-      if (data.user.role === 'faculty') {
-        // 如果是老师/管理员，跳到审核后台
-        router.push('/faculty');
-      } else {
-        // 如果是学生，跳到学生仪表盘
-        router.push('/dashboard');
-      }
-
+      localStorage.setItem('user', JSON.stringify(data.user))
+      router.push(data.user.role === 'faculty' ? '/faculty' : data.user.role === 'admin' ? '/admin' : '/dashboard')
     } else {
-      errorMessage.value = data.message || 'Login failed';
+      errorMessage.value = data.message || 'Login failed'
     }
   } catch (error) {
-    console.error(error);
-    errorMessage.value = 'Network error. Is XAMPP/Backend running?';
+    console.error(error)
+    const serverMessage = error?.response?.data?.message
+    if (serverMessage) {
+      errorMessage.value = serverMessage
+    } else {
+      errorMessage.value = 'Login failed (network/CORS/DB). Check backend is running and DB_PASS/CORS settings.'
+    }
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 </script>
 
 <style scoped>
-/* 蓝色主题登录页样式 */
 .login-container {
   display: flex;
   justify-content: center;
@@ -108,7 +97,7 @@ const handleLogin = async () => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 400px;
-  border-top: 5px solid #003366; /* 学术蓝 */
+  border-top: 5px solid #003366;
 }
 
 .login-header {
@@ -171,6 +160,18 @@ input:focus {
 .btn-primary:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+.btn-secondary {
+  margin-top: 10px;
+  background: transparent;
+  border: 1px solid #003366;
+  color: #003366;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
 }
 
 .error-msg {

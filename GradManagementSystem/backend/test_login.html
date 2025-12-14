@@ -21,6 +21,7 @@
             // 发送请求给刚才写的 PHP
             const response = await fetch('http://localhost:8080/api/login.php', {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: username, password: password })
             });
