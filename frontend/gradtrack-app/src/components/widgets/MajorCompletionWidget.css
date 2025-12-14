@@ -1,10 +1,10 @@
 .major-widget {
-  background-color: #fffef8;
-  border: 1px solid #f0eac2;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
   font-family: 'Poppins', sans-serif;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow);
   max-width: 660px;
 }
 
@@ -12,7 +12,7 @@
   font-size: 1.15rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #2c2c2c;
+  color: var(--text);
 }
 
 .circle-container {
@@ -28,7 +28,7 @@
 
 .progress-circle .fill {
   fill: none;
-  stroke: #f6e27f;
+  stroke: var(--primary);
   stroke-width: 10;
   stroke-linecap: round;
   transition: stroke-dashoffset 0.6s ease;
@@ -36,12 +36,12 @@
 
 .progress-circle text {
   font-size: 0.9rem;
-  fill: #333;
+  fill: var(--text);
 }
 
 .progress-text {
   font-size: 0.85rem;
-  color: #555;
+  color: var(--muted);
   margin-top: 0.5rem;
   text-align: center;
 }
@@ -49,8 +49,7 @@
 
 .progress-label {
   font-size: 0.9rem;
-  fill: #333;
+  fill: var(--text);
   transform: rotate(90deg);
   transform-origin: center;
 }
-

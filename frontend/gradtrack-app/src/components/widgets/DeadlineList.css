@@ -1,10 +1,10 @@
 .deadline-list {
-  background-color: #fffef8;
-  border: 1px solid #f0eac2;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
   font-family: 'Poppins', sans-serif;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
@@ -17,7 +17,7 @@
   font-size: 1.15rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
-  color: #2c2c2c;
+  color: var(--text);
 }
 
 .deadline-item {
@@ -25,7 +25,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #f0eac2;
+  border-bottom: 1px solid var(--card-border);
 }
 
 .deadline-item:last-child {
@@ -42,7 +42,7 @@
 
 .deadline-date {
   font-size: 0.85rem;
-  color: #777;
+  color: var(--muted);
   font-style: italic;
   white-space: nowrap;
 }

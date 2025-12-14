@@ -4,15 +4,15 @@
   left: 0;
   right: 0;
   height: 72px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e5e9f2;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 1.25rem;
   font-family: 'Poppins', sans-serif;
   z-index: 100;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.18);
 }
 
 .navbar-left {
@@ -23,17 +23,17 @@
 
 .menu-toggle {
   display: none;
-  background: #ffffff;
-  border: 1px solid #e5e9f2;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--header-border);
   border-radius: 12px;
   padding: 0.45rem 0.7rem;
-  color: #0f172a;
+  color: var(--header-text);
   font-weight: 800;
   box-shadow: none;
 }
 
 .menu-toggle:hover {
-  background: #f7f9fc;
+  background: var(--header-hover);
   box-shadow: none;
 }
 
@@ -49,7 +49,7 @@
   width: 42px;
   height: 42px;
   border-radius: 14px;
-  background: var(--primary);
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
   color: #ffffff;
   display: grid;
   place-items: center;
@@ -66,12 +66,12 @@
 .brand-title {
   font-size: 1.05rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--header-text);
 }
 
 .brand-subtitle {
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--header-muted);
   font-weight: 700;
 }
 
@@ -89,7 +89,7 @@
 }
 
 .navbar-welcome {
-  color: #0f172a;
+  color: var(--header-text);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -106,7 +106,7 @@
   font-size: 0.95rem;
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
-  color: #333;
+  color: var(--header-text);
   cursor: pointer;
   padding: 0.4rem 0.8rem;
   line-height: 1.2;
@@ -116,17 +116,17 @@
 }
 
 .nav-btn:hover {
-  background-color: #f5f7fb;
-  color: #0b3b9a;
+  background-color: var(--header-hover);
+  color: var(--header-text);
 }
 
 .nav-btn.logout {
   font-weight: 600;
-  color: #a00000;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .nav-btn.logout:hover {
-  background-color: #ffe5e5;
+  background-color: rgba(255, 255, 255, 0.14);
 }
 
 @media (max-width: 900px) {
