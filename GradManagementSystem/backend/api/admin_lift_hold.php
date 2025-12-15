@@ -18,6 +18,11 @@ if ($studentId === '' || $holdType === '') {
 $researchMethodCourseCode = getenv('RESEARCH_METHOD_COURSE_CODE') ?: 'CS690';
 
 try {
+    // Policy: Term 3 (research_method) is lifted by faculty after verification.
+    if (!$force && $holdType === 'research_method') {
+        send_json(['status' => 'error', 'message' => 'Research Method hold must be lifted by Faculty.'], 403);
+    }
+
     if (!$force) {
         $ok = false;
         if ($holdType === 'admission_letter') {
@@ -119,4 +124,3 @@ try {
 } catch (Exception $e) {
     send_json(['status' => 'error', 'message' => $e->getMessage()], 500);
 }
-

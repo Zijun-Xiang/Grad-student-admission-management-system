@@ -74,6 +74,7 @@ try {
         FROM documents d
         LEFT JOIN users u ON u.`$usersIdCol` = d.student_id
         WHERE d.status = 'pending'
+          AND d.doc_type <> 'research_method_proof'
         ORDER BY d.`$docsDateCol` ASC";
 
     $stmtDocs = $pdo->prepare($docsSql);

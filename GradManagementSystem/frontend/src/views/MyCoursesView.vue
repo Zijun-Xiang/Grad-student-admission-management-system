@@ -4,13 +4,27 @@
       <div class="brand">Grad System</div>
       <div class="user-info">
         <span>Welcome, {{ user.username }}</span>
-        <button @click="router.push('/dashboard')" class="btn-back">Back to Dashboard</button>
+        <button @click="logout" class="btn-logout">Logout</button>
       </div>
     </header>
 
     <div class="main-container">
+      <aside class="sidebar">
+        <nav>
+          <ul>
+            <li @click="router.push('/dashboard')">Dashboard</li>
+            <li class="active">My Courses</li>
+            <li @click="router.push('/documents')">Documents</li>
+            <li @click="router.push('/assignments')">Assignments</li>
+            <li v-if="term?.unlocks?.term2" @click="router.push('/major-professor')">Major Professor</li>
+            <li v-if="term?.unlocks?.term3" @click="router.push('/thesis-project')">Thesis / Project</li>
+          </ul>
+        </nav>
+      </aside>
+
       <main class="content">
-        <div class="card">
+        <div class="content-inner">
+          <div class="card">
           <h2>Course Registration</h2>
 
           <div v-if="hasHolds" class="alert-box">You have active Holds. Registration is disabled.</div>
@@ -47,6 +61,10 @@
           </div>
 
           <div v-else>
+            <div v-if="actionMessage" class="msg" :class="{ ok: actionOk, bad: !actionOk }">
+              {{ actionMessage }}
+            </div>
+
             <div class="credit-card">
               <div class="credit-row">
                 <div class="credit-title">Credit Requirement (per term)</div>
@@ -102,16 +120,19 @@
                     v-if="!isRegistered(course.course_code)"
                     @click="register(course)"
                     class="btn-register"
-                    :disabled="wouldExceedMax(course)"
+                    :disabled="wouldExceedMax(course) || isBusy(course.course_code)"
                     :title="wouldExceedMax(course) ? `Exceeds max ${maxCredits} credits` : ''"
                   >
-                    Register
+                    {{ isBusy(course.course_code) ? 'Working...' : 'Register' }}
                   </button>
-                  <span v-else class="text-registered">&#10003;</span>
+                  <button v-else @click="unregister(course)" class="btn-drop" :disabled="isBusy(course.course_code)">
+                    {{ isBusy(course.course_code) ? 'Working...' : 'Drop' }}
+                  </button>
                 </span>
               </div>
             </div>
           </div>
+        </div>
         </div>
       </main>
     </div>
@@ -125,6 +146,7 @@ import api from '../api/client'
 
 const router = useRouter()
 const user = ref({})
+const term = ref(null)
 const allCourses = ref([])
 const registeredCourses = ref([])
 const deficiencyList = ref([])
@@ -138,6 +160,15 @@ const coreCourses = ref([])
 const completedCore = ref([])
 const submittingCore = ref(false)
 const coreError = ref('')
+const actionMessage = ref('')
+const actionOk = ref(true)
+const busyByCourse = ref({})
+
+const setBusy = (courseCode, isBusy) => {
+  busyByCourse.value = { ...busyByCourse.value, [courseCode]: isBusy }
+}
+
+const isBusy = (courseCode) => Boolean(busyByCourse.value?.[courseCode])
 
 onMounted(() => {
   const storedUser = localStorage.getItem('user')
@@ -153,6 +184,7 @@ const checkStatusAndLoad = async () => {
   try {
     const res = await api.get('get_status.php')
     if (res.data.status === 'success') {
+      term.value = res.data.term || null
       hasHolds.value = res.data.holds.length > 0
       deficiencyList.value = res.data.deficiencies || []
       const docs = res.data.documents || []
@@ -174,6 +206,14 @@ const checkStatusAndLoad = async () => {
   } catch (e) {
     console.error(e)
   }
+}
+
+const logout = async () => {
+  try {
+    await api.post('logout.php')
+  } catch {}
+  localStorage.removeItem('user')
+  router.push('/')
 }
 
 const fetchCoreCourses = async () => {
@@ -259,19 +299,53 @@ const wouldExceedMax = (course) => {
 }
 
 const register = async (course) => {
-  if (wouldExceedMax(course)) return alert(`Cannot exceed ${maxCredits} credits per term.`)
-  if (!confirm(`Register for ${course.course_code}?`)) return
+  actionMessage.value = ''
+  if (wouldExceedMax(course)) {
+    actionOk.value = false
+    actionMessage.value = `Cannot exceed ${maxCredits} credits per term.`
+    return
+  }
+  if (isBusy(course.course_code)) return
+  setBusy(course.course_code, true)
   try {
     const res = await api.post('register_course.php', { course_code: course.course_code })
     if (res.data.status === 'success') {
-      alert('Registered Successfully!')
-      fetchRegisteredCourses()
+      actionOk.value = true
+      actionMessage.value = `Registered: ${course.course_code}`
+      await fetchRegisteredCourses()
+      await checkStatusAndLoad()
     } else {
-      alert('Error: ' + res.data.message)
+      actionOk.value = false
+      actionMessage.value = res.data.message || 'Registration failed.'
     }
   } catch (e) {
-    const msg = e?.response?.data?.message || 'Network Error'
-    alert(msg)
+    actionOk.value = false
+    actionMessage.value = e?.response?.data?.message || 'Network Error'
+  } finally {
+    setBusy(course.course_code, false)
+  }
+}
+
+const unregister = async (course) => {
+  actionMessage.value = ''
+  if (isBusy(course.course_code)) return
+  setBusy(course.course_code, true)
+  try {
+    const res = await api.post('unregister_course.php', { course_code: course.course_code })
+    if (res.data.status === 'success') {
+      actionOk.value = true
+      actionMessage.value = `Dropped: ${course.course_code}`
+      await fetchRegisteredCourses()
+      await checkStatusAndLoad()
+    } else {
+      actionOk.value = false
+      actionMessage.value = res.data.message || 'Drop failed.'
+    }
+  } catch (e) {
+    actionOk.value = false
+    actionMessage.value = e?.response?.data?.message || 'Network Error'
+  } finally {
+    setBusy(course.course_code, false)
   }
 }
 </script>
@@ -293,29 +367,50 @@ const register = async (course) => {
   justify-content: space-between;
   align-items: center;
 }
+.btn-logout {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
 .main-container {
   flex: 1;
   display: flex;
-  justify-content: center;
-  padding: 40px;
+  overflow: hidden;
+}
+.sidebar {
+  width: 260px;
+  background: white;
+  border-right: 1px solid #dee2e6;
+  padding-top: 1rem;
+}
+.sidebar li {
+  padding: 15px 25px;
+  cursor: pointer;
+  color: #495057;
+}
+.sidebar li.active {
+  background-color: #e3f2fd;
+  color: #003366;
+  border-left: 4px solid #003366;
 }
 .content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+.content-inner {
   width: 100%;
   max-width: 900px;
+  margin: 0 auto;
 }
 .card {
   background: white;
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-}
-.btn-back {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid white;
-  color: white;
-  padding: 5px 15px;
-  cursor: pointer;
-  border-radius: 4px;
 }
 h2 {
   color: #003366;
@@ -491,6 +586,34 @@ h2 {
 .btn-register:disabled {
   background: #cbd5e1;
   cursor: not-allowed;
+}
+.btn-drop {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-drop:hover {
+  background-color: #5a6268;
+}
+.msg {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 0 0 16px;
+  font-weight: 600;
+}
+.msg.ok {
+  background: #e8f7ee;
+  border: 1px solid #b6e2c3;
+  color: #1b7a3a;
+}
+.msg.bad {
+  background: #fdebec;
+  border: 1px solid #f5c2c7;
+  color: #b4232c;
 }
 .text-registered {
   color: #28a745;

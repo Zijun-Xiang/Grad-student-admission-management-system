@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../bootstrap.php';
-require_login(['faculty']);
+// Document approvals are handled in the Admin portal.
+send_json(['status' => 'success', 'data' => []]);
 
 include_once '../db.php';
 
@@ -12,4 +13,3 @@ try {
 } catch (Exception $e) {
     send_json(['status' => 'error', 'message' => $e->getMessage()], 500);
 }
-

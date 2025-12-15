@@ -9,6 +9,71 @@ if (($user['role'] ?? '') === 'faculty') {
     send_json(['status' => 'error', 'message' => 'Forbidden.'], 403);
 }
 
+// Term gating: Major Professor Form is unlocked starting Term 2.
+try {
+    $studentIdForGate = (string)($user['id'] ?? '');
+    $currentTerm = grad_current_term_code();
+    $entryTerm = '';
+    $entryDate = '';
+
+    try {
+        $stmtP = $pdo->prepare("SELECT entry_date, entry_term_code FROM user_profiles WHERE user_id = :uid LIMIT 1");
+        $stmtP->bindParam(':uid', $studentIdForGate);
+        $stmtP->execute();
+        $row = $stmtP->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $entryDate = (string)($row['entry_date'] ?? '');
+            $entryTerm = (string)($row['entry_term_code'] ?? '');
+        }
+    } catch (Exception $e) {
+        // ignore
+    }
+
+    if ($entryTerm === '' && $entryDate !== '') {
+        $entryTerm = grad_term_code_from_date($entryDate) ?: '';
+    }
+
+    if ($entryTerm === '') $entryTerm = $currentTerm;
+
+    if (grad_term_number($entryTerm, $currentTerm) < 2) {
+        send_json(['status' => 'error', 'message' => 'Major Professor Form upload is available starting Term 2.'], 403);
+    }
+} catch (Exception $e) {
+    // If term data is unavailable, default to allowing.
+}
+
+function ensure_documents_doc_type_support(PDO $pdo): void
+{
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM documents LIKE 'doc_type'")->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return;
+
+        $type = strtolower((string)($row['Type'] ?? ''));
+        $nullable = ((string)($row['Null'] ?? 'YES')) === 'YES';
+        $nullSql = $nullable ? 'NULL' : 'NOT NULL';
+
+        $requiredValue = 'major_professor_form';
+        $needsUpgrade = false;
+
+        if (strpos($type, 'enum(') === 0) {
+            // Enums are brittle for new doc types; upgrade to a VARCHAR.
+            $needsUpgrade = true;
+        } elseif (preg_match('/^varchar\\((\\d+)\\)/', $type, $m)) {
+            $len = (int)$m[1];
+            if ($len > 0 && $len < strlen($requiredValue)) $needsUpgrade = true;
+        } elseif (preg_match('/^char\\((\\d+)\\)/', $type, $m)) {
+            $len = (int)$m[1];
+            if ($len > 0 && $len < strlen($requiredValue)) $needsUpgrade = true;
+        }
+
+        if ($needsUpgrade) {
+            $pdo->exec("ALTER TABLE documents MODIFY COLUMN doc_type VARCHAR(64) $nullSql");
+        }
+    } catch (Exception $e) {
+        // Best-effort only.
+    }
+}
+
 if (!isset($_FILES['file'])) {
     send_json(['status' => 'error', 'message' => 'No file received.'], 400);
 }
@@ -56,6 +121,8 @@ if (!move_uploaded_file($tmpPath, $targetFile)) {
 }
 
 try {
+    ensure_documents_doc_type_support($pdo);
+
     $stmt = $pdo->prepare("INSERT INTO documents (student_id, doc_type, file_path, status)
                            VALUES (:sid, 'major_professor_form', :fpath, 'pending')");
     $stmt->bindParam(':sid', $studentId);
@@ -67,6 +134,8 @@ try {
 
     send_json(['status' => 'success', 'message' => 'Major Professor Form uploaded successfully!', 'file' => $filename]);
 } catch (Exception $e) {
+    if (isset($targetFile) && is_string($targetFile) && $targetFile !== '' && is_file($targetFile)) {
+        @unlink($targetFile);
+    }
     send_json(['status' => 'error', 'message' => 'DB Error: ' . $e->getMessage()], 500);
 }
-

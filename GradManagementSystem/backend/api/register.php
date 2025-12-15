@@ -107,6 +107,14 @@ if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 try {
+    // Ensure auxiliary tables exist BEFORE starting any transaction.
+    // MySQL will implicitly commit when running DDL (e.g., CREATE TABLE), which would break our transaction.
+    try {
+        ensure_user_profiles_table($pdo);
+    } catch (Exception $e) {
+        // ignore
+    }
+
     $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = :u LIMIT 1');
     $stmt->bindParam(':u', $username);
     $stmt->execute();
@@ -165,7 +173,6 @@ try {
 
     // Upsert entry/admission date for any user.
     try {
-        ensure_user_profiles_table($pdo);
         $termCodeForProfile = $entryTermCode !== '' ? $entryTermCode : (term_code_from_date($entryDate) ?: (getenv('DEFAULT_TERM_CODE') ?: guess_term_code()));
         $dateForProfile = $entryDate !== '' ? $entryDate : null;
 

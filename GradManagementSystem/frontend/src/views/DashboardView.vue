@@ -15,7 +15,9 @@
 	            <li class="active">Dashboard</li>
 	            <li @click="router.push('/my-courses')">My Courses</li>
 	            <li @click="router.push('/documents')">Documents</li>
-	            <li @click="router.push('/major-professor')">Major Professor</li>
+	            <li @click="router.push('/assignments')">Assignments</li>
+	            <li v-if="termInfo.termNumber >= 2" @click="router.push('/major-professor')">Major Professor</li>
+            <li v-if="termInfo.termNumber >= 3" @click="router.push('/thesis-project')">Thesis / Project</li>
 	          </ul>
 	        </nav>
 	      </aside>
@@ -117,6 +119,7 @@ const holds = ref([])
 const documents = ref([])
 const deficiencies = ref([])
 const profile = ref(null)
+const term = ref(null)
 const isLoadingData = ref(true)
 
 const docByType = (type) => documents.value.find((d) => d.doc_type === type) || null
@@ -145,6 +148,14 @@ const termIndex = (termCode) => {
 }
 
 const termInfo = computed(() => {
+  if (term.value) {
+    return {
+      entryDate: term.value.entry_date || '',
+      entryTerm: term.value.entry_term_code || 'Unknown',
+      currentTerm: term.value.current_term_code || 'Unknown',
+      termNumber: Number(term.value.term_number || 1),
+    }
+  }
   const p = profile.value || {}
   const entryDate = p.entry_date || ''
   const entryTerm = p.entry_term_code || (entryDate ? termCodeFromDate(entryDate) : '')
@@ -171,6 +182,7 @@ const fetchStatus = async () => {
       documents.value = response.data.documents
       deficiencies.value = response.data.deficiencies || []
       profile.value = response.data.profile || null
+      term.value = response.data.term || null
     }
   } catch (error) {
     console.error(error)

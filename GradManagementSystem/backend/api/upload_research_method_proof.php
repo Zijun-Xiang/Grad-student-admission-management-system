@@ -1,0 +1,199 @@
+<?php
+require_once __DIR__ . '/../bootstrap.php';
+require_method('POST');
+
+include_once '../db.php';
+
+$user = require_login(['student']);
+
+// Term gating: Research Method proof upload is available starting Term 3.
+try {
+    $studentIdForGate = (string)($user['id'] ?? '');
+    $currentTerm = grad_current_term_code();
+    $entryTerm = '';
+    $entryDate = '';
+
+    try {
+        $stmtP = $pdo->prepare("SELECT entry_date, entry_term_code FROM user_profiles WHERE user_id = :uid LIMIT 1");
+        $stmtP->bindParam(':uid', $studentIdForGate);
+        $stmtP->execute();
+        $row = $stmtP->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $entryDate = (string)($row['entry_date'] ?? '');
+            $entryTerm = (string)($row['entry_term_code'] ?? '');
+        }
+    } catch (Exception $e) {
+        // ignore
+    }
+
+    if ($entryTerm === '' && $entryDate !== '') {
+        $entryTerm = grad_term_code_from_date($entryDate) ?: '';
+    }
+    if ($entryTerm === '') $entryTerm = $currentTerm;
+
+    if (grad_term_number($entryTerm, $currentTerm) < 3) {
+        send_json(['status' => 'error', 'message' => 'Research Method upload is available starting Term 3.'], 403);
+    }
+} catch (Exception $e) {
+    // If term data is unavailable, default to allowing.
+}
+
+function ensure_documents_doc_type_support_research(PDO $pdo): void
+{
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM documents LIKE 'doc_type'")->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return;
+
+        $type = strtolower((string)($row['Type'] ?? ''));
+        $nullable = ((string)($row['Null'] ?? 'YES')) === 'YES';
+        $nullSql = $nullable ? 'NULL' : 'NOT NULL';
+
+        $requiredValue = 'research_method_proof';
+        $needsUpgrade = false;
+
+        if (strpos($type, 'enum(') === 0) {
+            $needsUpgrade = true;
+        } elseif (preg_match('/^varchar\\((\\d+)\\)/', $type, $m)) {
+            $len = (int)$m[1];
+            if ($len > 0 && $len < strlen($requiredValue)) $needsUpgrade = true;
+        } elseif (preg_match('/^char\\((\\d+)\\)/', $type, $m)) {
+            $len = (int)$m[1];
+            if ($len > 0 && $len < strlen($requiredValue)) $needsUpgrade = true;
+        }
+
+        if ($needsUpgrade) {
+            $pdo->exec("ALTER TABLE documents MODIFY COLUMN doc_type VARCHAR(64) $nullSql");
+        }
+    } catch (Exception $e) {
+        // Best-effort only.
+    }
+}
+
+if (!isset($_FILES['file'])) {
+    send_json(['status' => 'error', 'message' => 'No file received.'], 400);
+}
+
+$file = $_FILES['file'];
+$studentId = (string)($user['id'] ?? '');
+
+if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+    send_json(['status' => 'error', 'message' => 'File upload error code: ' . (string)($file['error'] ?? '')], 400);
+}
+
+$maxBytes = (int)(getenv('UPLOAD_MAX_BYTES') ?: (10 * 1024 * 1024));
+if ((int)($file['size'] ?? 0) > $maxBytes) {
+    send_json(['status' => 'error', 'message' => 'File too large.'], 400);
+}
+
+$originalName = (string)($file['name'] ?? 'upload');
+$ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+$allowedExt = ['pdf', 'jpg', 'jpeg', 'png'];
+if (!in_array($ext, $allowedExt, true)) {
+    send_json(['status' => 'error', 'message' => 'Unsupported file type.'], 400);
+}
+
+$tmpPath = (string)($file['tmp_name'] ?? '');
+if ($tmpPath === '' || !is_file($tmpPath)) {
+    send_json(['status' => 'error', 'message' => 'Invalid upload.'], 400);
+}
+
+$finfo = new finfo(FILEINFO_MIME_TYPE);
+$mime = $finfo->file($tmpPath);
+$allowedMime = ['application/pdf', 'image/jpeg', 'image/png'];
+if ($mime === false || !in_array($mime, $allowedMime, true)) {
+    send_json(['status' => 'error', 'message' => 'Invalid file content type.'], 400);
+}
+
+$filename = bin2hex(random_bytes(16)) . '.' . $ext;
+$targetDir = __DIR__ . '/../uploads';
+if (!is_dir($targetDir)) {
+    mkdir($targetDir, 0777, true);
+}
+$targetFile = $targetDir . '/' . $filename;
+
+if (!move_uploaded_file($tmpPath, $targetFile)) {
+    send_json(['status' => 'error', 'message' => 'Failed to move file. Permission denied?'], 500);
+}
+
+try {
+    ensure_documents_doc_type_support_research($pdo);
+
+    $stmt = $pdo->prepare(
+        "INSERT INTO documents (student_id, doc_type, file_path, status)
+         VALUES (:sid, 'research_method_proof', :fpath, 'pending')"
+    );
+    $stmt->bindParam(':sid', $studentId);
+    $stmt->bindParam(':fpath', $filename);
+
+    if (!$stmt->execute()) {
+        send_json(['status' => 'error', 'message' => 'Database save failed.'], 500);
+    }
+
+    // Ensure the student has an active research_method hold (so faculty can see it in Research Hold list),
+    // unless the requirement is already satisfied by course registration.
+    try {
+        $researchMethodCourseCode = getenv('RESEARCH_METHOD_COURSE_CODE') ?: 'CS690';
+        $currentTerm = grad_current_term_code();
+
+        $hasHold = false;
+        try {
+            $stmtH = $pdo->prepare(
+                "SELECT 1 FROM holds
+                 WHERE student_id = :sid AND hold_type = 'research_method' AND is_active = TRUE
+                 LIMIT 1"
+            );
+            $stmtH->bindParam(':sid', $studentId);
+            $stmtH->execute();
+            $hasHold = (bool)$stmtH->fetchColumn();
+        } catch (Exception $e) {
+            $hasHold = false;
+        }
+
+        if (!$hasHold) {
+            $stmtOk = $pdo->prepare(
+                "SELECT 1 FROM student_registrations
+                 WHERE student_id = :sid AND course_code = :code
+                 LIMIT 1"
+            );
+            $stmtOk->bindParam(':sid', $studentId);
+            $stmtOk->bindParam(':code', $researchMethodCourseCode);
+            $stmtOk->execute();
+            $satisfied = (bool)$stmtOk->fetchColumn();
+
+            if (!$satisfied) {
+                $hasTermCode = false;
+                try {
+                    $hasTermCode = (bool)$pdo->query("SHOW COLUMNS FROM holds LIKE 'term_code'")->fetchColumn();
+                } catch (Exception $e) {
+                    $hasTermCode = false;
+                }
+
+                if ($hasTermCode) {
+                    $stmtIns = $pdo->prepare(
+                        "INSERT INTO holds (student_id, hold_type, is_active, term_code)
+                         VALUES (:sid, 'research_method', TRUE, :term)"
+                    );
+                    $stmtIns->bindParam(':sid', $studentId);
+                    $stmtIns->bindParam(':term', $currentTerm);
+                    $stmtIns->execute();
+                } else {
+                    $stmtIns = $pdo->prepare(
+                        "INSERT INTO holds (student_id, hold_type, is_active)
+                         VALUES (:sid, 'research_method', TRUE)"
+                    );
+                    $stmtIns->bindParam(':sid', $studentId);
+                    $stmtIns->execute();
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // ignore (best-effort)
+    }
+
+    send_json(['status' => 'success', 'message' => 'Research Method proof uploaded.'], 200);
+} catch (Exception $e) {
+    if (isset($targetFile) && is_string($targetFile) && $targetFile !== '' && is_file($targetFile)) {
+        @unlink($targetFile);
+    }
+    send_json(['status' => 'error', 'message' => 'DB Error: ' . $e->getMessage()], 500);
+}

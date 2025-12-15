@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../bootstrap.php';
-require_login(['faculty']);
+// Document approvals are handled in the Admin portal.
+send_json(['status' => 'error', 'message' => 'Deprecated. Use Admin portal to approve/reject documents.'], 410);
 require_method('POST');
 
 include_once '../db.php';

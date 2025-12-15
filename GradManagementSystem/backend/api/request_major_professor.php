@@ -17,6 +17,50 @@ if ($professorId === '') {
 
 $studentId = effective_student_id_for_request($user, isset($data['student_id']) ? (string)$data['student_id'] : null);
 
+// Term gating: Major Professor selection is unlocked starting Term 2.
+try {
+    $currentTerm = grad_current_term_code();
+    $entryTerm = '';
+    $entryDate = '';
+
+    try {
+        $stmtP = $pdo->prepare("SELECT entry_date, entry_term_code FROM user_profiles WHERE user_id = :uid LIMIT 1");
+        $stmtP->bindParam(':uid', $studentId);
+        $stmtP->execute();
+        $row = $stmtP->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $entryDate = (string)($row['entry_date'] ?? '');
+            $entryTerm = (string)($row['entry_term_code'] ?? '');
+        }
+    } catch (Exception $e) {
+        // ignore
+    }
+
+    if ($entryTerm === '') {
+        try {
+            $stmtEntry = $pdo->prepare("SELECT entry_term_code FROM student_details WHERE student_id = :sid LIMIT 1");
+            $stmtEntry->bindParam(':sid', $studentId);
+            $stmtEntry->execute();
+            $tc = $stmtEntry->fetchColumn();
+            if ($tc !== false && $tc !== null) $entryTerm = (string)$tc;
+        } catch (Exception $e) {
+            // ignore
+        }
+    }
+
+    if ($entryTerm === '' && $entryDate !== '') {
+        $entryTerm = grad_term_code_from_date($entryDate) ?: '';
+    }
+
+    if ($entryTerm === '') $entryTerm = $currentTerm;
+
+    if (grad_term_number($entryTerm, $currentTerm) < 2) {
+        send_json(['status' => 'error', 'message' => 'Major Professor selection is available starting Term 2.'], 403);
+    }
+} catch (Exception $e) {
+    // If term data is unavailable, default to allowing.
+}
+
 function default_value_for_column(array $col)
 {
     $type = strtolower((string)($col['Type'] ?? ''));

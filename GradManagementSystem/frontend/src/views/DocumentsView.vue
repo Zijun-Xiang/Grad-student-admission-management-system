@@ -15,7 +15,9 @@
             <li @click="router.push('/dashboard')">Dashboard</li>
             <li @click="router.push('/my-courses')">My Courses</li>
             <li class="active">Documents</li>
-            <li @click="router.push('/major-professor')">Major Professor</li>
+            <li @click="router.push('/assignments')">Assignments</li>
+            <li v-if="term?.unlocks?.term2" @click="router.push('/major-professor')">Major Professor</li>
+            <li v-if="term?.unlocks?.term3" @click="router.push('/thesis-project')">Thesis / Project</li>
           </ul>
         </nav>
       </aside>
@@ -40,9 +42,47 @@
             <div class="upload-panel">
               <h3>Major Professor Form</h3>
               <p class="text-muted">Required for Term 2 hold release.</p>
+              <div v-if="!term?.unlocks?.term2" class="msg bad" style="margin: 10px 0 0">
+                Locked: available starting Term 2.
+              </div>
               <input type="file" @change="onMpFormFileChange" accept=".pdf,.jpg,.png" />
-              <button class="btn-primary" @click="uploadMpForm" :disabled="!mpFormFile || uploadingMpForm">
+              <button
+                class="btn-primary"
+                @click="uploadMpForm"
+                :disabled="!term?.unlocks?.term2 || !mpFormFile || uploadingMpForm"
+              >
                 {{ uploadingMpForm ? 'Uploading...' : 'Upload' }}
+              </button>
+            </div>
+
+            <div class="upload-panel">
+              <h3>Thesis / Project</h3>
+              <p class="text-muted">Upload your thesis/project file (PDF). Allowed only in Term 3 and Term 4.</p>
+              <div v-if="!thesisUploadUnlocked" class="msg bad" style="margin: 10px 0 0">
+                Locked: available only in Term 3 and Term 4.
+              </div>
+              <input type="file" @change="onThesisFileChange" accept=".pdf" />
+              <button class="btn-primary" @click="uploadThesis" :disabled="!thesisUploadUnlocked || !thesisFile || uploadingThesis">
+                {{ uploadingThesis ? 'Uploading...' : 'Upload' }}
+              </button>
+            </div>
+
+            <div class="upload-panel">
+              <h3>Research Method (Proof)</h3>
+              <p class="text-muted">
+                Term 3 hold release requires you to register/take the Research Method course. Faculty will verify your course registration.
+                Upload proof here if requested (PDF/JPG/PNG).
+              </p>
+              <div v-if="!term?.unlocks?.term3" class="msg bad" style="margin: 10px 0 0">
+                Locked: available starting Term 3.
+              </div>
+              <input type="file" @change="onResearchMethodFileChange" accept=".pdf,.jpg,.jpeg,.png" />
+              <button
+                class="btn-primary"
+                @click="uploadResearchMethodProof"
+                :disabled="!term?.unlocks?.term3 || !researchMethodFile || uploadingResearchMethod"
+              >
+                {{ uploadingResearchMethod ? 'Uploading...' : 'Upload' }}
               </button>
             </div>
           </div>
@@ -70,6 +110,8 @@
               <div class="actions">
                 <button class="btn-secondary" @click="openDoc(d)">View</button>
                 <button class="btn-secondary" @click="openComments(d)">Comments</button>
+                <button class="btn-secondary" @click="openReplace(d)" :disabled="!canModify(d)">Replace</button>
+                <button class="btn-danger" @click="openDelete(d)" :disabled="!canModify(d)">Delete</button>
               </div>
             </div>
           </div>
@@ -98,8 +140,47 @@
           </div>
         </div>
 
+        <textarea v-model="newComment" placeholder="Add a note..." rows="3"></textarea>
+        <div v-if="commentMsg" class="msg" :class="{ ok: commentOk, bad: !commentOk }">{{ commentMsg }}</div>
         <div class="modal-actions">
           <button class="btn-cancel" @click="closeComments">Close</button>
+          <button class="btn-primary" @click="postComment" :disabled="commentPosting || !newComment.trim() || !activeDoc">
+            {{ commentPosting ? 'Posting...' : 'Post' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showReplace" class="modal-overlay">
+      <div class="modal-box wide-modal">
+        <h3>Replace Document</h3>
+        <div class="comment-meta" v-if="replaceDoc">
+          <strong>{{ replaceDoc.doc_type }}</strong> · doc_id={{ replaceDoc.doc_id }}
+        </div>
+        <input type="file" @change="onReplaceFileChange" :accept="replaceAccept" />
+        <div v-if="replaceMsg" class="msg" :class="{ ok: replaceOk, bad: !replaceOk }">{{ replaceMsg }}</div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="closeReplace">Cancel</button>
+          <button class="btn-primary" @click="doReplace" :disabled="replacing || !replaceFile || !replaceDoc">
+            {{ replacing ? 'Uploading...' : 'Replace' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showDelete" class="modal-overlay">
+      <div class="modal-box wide-modal">
+        <h3>Delete Document</h3>
+        <div class="comment-meta" v-if="deleteDoc">
+          <strong>{{ deleteDoc.doc_type }}</strong> · {{ deleteDoc.file_path }}
+        </div>
+        <div class="msg bad">This will remove the file from the system. Approved documents cannot be deleted.</div>
+        <div v-if="deleteMsg" class="msg" :class="{ ok: deleteOk, bad: !deleteOk }">{{ deleteMsg }}</div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="closeDelete" :disabled="deleting">Cancel</button>
+          <button class="btn-danger" @click="doDelete" :disabled="deleting || !deleteDoc">
+            {{ deleting ? 'Deleting...' : 'Delete' }}
+          </button>
         </div>
       </div>
     </div>
@@ -107,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
 
@@ -119,8 +200,12 @@ const documents = ref([])
 
 const admissionFile = ref(null)
 const mpFormFile = ref(null)
+const thesisFile = ref(null)
+const researchMethodFile = ref(null)
 const uploadingAdmission = ref(false)
 const uploadingMpForm = ref(false)
+const uploadingThesis = ref(false)
+const uploadingResearchMethod = ref(false)
 
 const message = ref('')
 const messageOk = ref(true)
@@ -129,6 +214,16 @@ const showComments = ref(false)
 const activeDoc = ref(null)
 const comments = ref([])
 const commentsLoading = ref(false)
+const newComment = ref('')
+const commentPosting = ref(false)
+const commentMsg = ref('')
+const commentOk = ref(true)
+const term = ref({ term_number: 1, unlocks: { term2: false, term3: false } })
+
+const thesisUploadUnlocked = computed(() => {
+  const n = Number(term.value?.term_number || 1)
+  return n >= 3 && n <= 4
+})
 
 const onAdmissionFileChange = (e) => {
   admissionFile.value = e?.target?.files?.[0] ?? null
@@ -138,13 +233,49 @@ const onMpFormFileChange = (e) => {
   mpFormFile.value = e?.target?.files?.[0] ?? null
 }
 
+const onThesisFileChange = (e) => {
+  thesisFile.value = e?.target?.files?.[0] ?? null
+}
+
+const onResearchMethodFileChange = (e) => {
+  researchMethodFile.value = e?.target?.files?.[0] ?? null
+}
+
 const fetchDocs = async () => {
   loading.value = true
   try {
     const res = await api.get('get_status.php')
-    if (res.data.status === 'success') documents.value = res.data.documents || []
+    if (res.data.status === 'success') {
+      documents.value = res.data.documents || []
+      term.value = res.data.term || term.value
+    }
   } finally {
     loading.value = false
+  }
+}
+
+const uploadThesis = async () => {
+  if (!thesisFile.value) return
+  uploadingThesis.value = true
+  message.value = ''
+  try {
+    const form = new FormData()
+    form.append('file', thesisFile.value)
+    const res = await api.post('upload_thesis_project.php', form)
+    if (res.data.status === 'success') {
+      messageOk.value = true
+      message.value = 'Thesis/Project file uploaded. Waiting for review.'
+      thesisFile.value = null
+      await fetchDocs()
+    } else {
+      messageOk.value = false
+      message.value = res.data.message || 'Upload failed'
+    }
+  } catch (e) {
+    messageOk.value = false
+    message.value = e?.response?.data?.message || 'Upload failed'
+  } finally {
+    uploadingThesis.value = false
   }
 }
 
@@ -198,6 +329,31 @@ const uploadMpForm = async () => {
   }
 }
 
+const uploadResearchMethodProof = async () => {
+  if (!researchMethodFile.value) return
+  uploadingResearchMethod.value = true
+  message.value = ''
+  try {
+    const form = new FormData()
+    form.append('file', researchMethodFile.value)
+    const res = await api.post('upload_research_method_proof.php', form)
+    if (res.data.status === 'success') {
+      messageOk.value = true
+      message.value = res.data.message || 'Research Method proof uploaded.'
+      researchMethodFile.value = null
+      await fetchDocs()
+    } else {
+      messageOk.value = false
+      message.value = res.data.message || 'Upload failed'
+    }
+  } catch (e) {
+    messageOk.value = false
+    message.value = e?.response?.data?.message || 'Upload failed'
+  } finally {
+    uploadingResearchMethod.value = false
+  }
+}
+
 const openDoc = async (doc) => {
   try {
     const res = await api.get(`download_document.php?doc_id=${doc.doc_id}`, { responseType: 'blob' })
@@ -206,18 +362,20 @@ const openDoc = async (doc) => {
     window.open(url, '_blank', 'noopener,noreferrer')
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
   } catch (e) {
-    alert('Failed to open document.')
+    messageOk.value = false
+    message.value = e?.response?.data?.message || 'Failed to open document.'
   }
 }
 
 const openComments = async (doc) => {
   activeDoc.value = doc
   showComments.value = true
+  newComment.value = ''
+  commentMsg.value = ''
   comments.value = []
   commentsLoading.value = true
   try {
-    const res = await api.get(`document_comments_list.php?doc_id=${doc.doc_id}`)
-    if (res.data.status === 'success') comments.value = res.data.data || []
+    await fetchComments(doc.doc_id)
   } finally {
     commentsLoading.value = false
   }
@@ -227,6 +385,146 @@ const closeComments = () => {
   showComments.value = false
   activeDoc.value = null
   comments.value = []
+  newComment.value = ''
+  commentMsg.value = ''
+}
+
+const postComment = async () => {
+  if (!activeDoc.value) return
+  commentPosting.value = true
+  commentMsg.value = ''
+  commentOk.value = true
+  try {
+    const res = await api.post('document_comments_add.php', { doc_id: activeDoc.value.doc_id, comment: newComment.value })
+    if (res.data?.status === 'success') {
+      commentOk.value = true
+      commentMsg.value = 'Posted.'
+      newComment.value = ''
+      await fetchComments(activeDoc.value.doc_id)
+    } else {
+      commentOk.value = false
+      commentMsg.value = res.data?.message || 'Failed to post'
+    }
+  } catch (e) {
+    commentOk.value = false
+    commentMsg.value = e?.response?.data?.message || 'Failed to post'
+  } finally {
+    commentPosting.value = false
+  }
+}
+
+const fetchComments = async (docId) => {
+  const res = await api.get(`document_comments_list.php?doc_id=${docId}`)
+  if (res.data?.status === 'success') comments.value = res.data.data || []
+}
+
+const canModify = (d) => String(d?.status || '').toLowerCase() !== 'approved'
+
+// Replace/Delete modals
+const showReplace = ref(false)
+const replaceDoc = ref(null)
+const replaceFile = ref(null)
+const replacing = ref(false)
+const replaceMsg = ref('')
+const replaceOk = ref(true)
+
+const showDelete = ref(false)
+const deleteDoc = ref(null)
+const deleting = ref(false)
+const deleteMsg = ref('')
+const deleteOk = ref(true)
+
+const replaceAccept = computed(() => {
+  const t = String(replaceDoc.value?.doc_type || '')
+  if (t === 'thesis_project') return '.pdf'
+  return '.pdf,.jpg,.jpeg,.png'
+})
+
+const openReplace = (d) => {
+  replaceDoc.value = d
+  replaceFile.value = null
+  replaceMsg.value = ''
+  replaceOk.value = true
+  showReplace.value = true
+}
+
+const closeReplace = () => {
+  showReplace.value = false
+  replaceDoc.value = null
+  replaceFile.value = null
+  replaceMsg.value = ''
+}
+
+const onReplaceFileChange = (e) => {
+  replaceFile.value = e?.target?.files?.[0] ?? null
+}
+
+const doReplace = async () => {
+  if (!replaceDoc.value || !replaceFile.value) return
+  replacing.value = true
+  replaceMsg.value = ''
+  replaceOk.value = true
+  try {
+    const form = new FormData()
+    form.append('doc_id', String(replaceDoc.value.doc_id))
+    form.append('file', replaceFile.value)
+    const res = await api.post('student_replace_document.php', form)
+    if (res.data?.status === 'success') {
+      replaceOk.value = true
+      replaceMsg.value = res.data?.message || 'Replaced.'
+      messageOk.value = true
+      message.value = replaceMsg.value
+      await fetchDocs()
+      closeReplace()
+    } else {
+      replaceOk.value = false
+      replaceMsg.value = res.data?.message || 'Replace failed'
+    }
+  } catch (e) {
+    replaceOk.value = false
+    replaceMsg.value = e?.response?.data?.message || 'Replace failed'
+  } finally {
+    replacing.value = false
+  }
+}
+
+const openDelete = (d) => {
+  deleteDoc.value = d
+  deleteMsg.value = ''
+  deleteOk.value = true
+  showDelete.value = true
+}
+
+const closeDelete = () => {
+  showDelete.value = false
+  deleteDoc.value = null
+  deleteMsg.value = ''
+}
+
+const doDelete = async () => {
+  if (!deleteDoc.value) return
+  deleting.value = true
+  deleteMsg.value = ''
+  deleteOk.value = true
+  try {
+    const res = await api.post('student_delete_document.php', { doc_id: deleteDoc.value.doc_id })
+    if (res.data?.status === 'success') {
+      deleteOk.value = true
+      deleteMsg.value = res.data?.message || 'Deleted.'
+      messageOk.value = true
+      message.value = deleteMsg.value
+      await fetchDocs()
+      closeDelete()
+    } else {
+      deleteOk.value = false
+      deleteMsg.value = res.data?.message || 'Delete failed'
+    }
+  } catch (e) {
+    deleteOk.value = false
+    deleteMsg.value = e?.response?.data?.message || 'Delete failed'
+  } finally {
+    deleting.value = false
+  }
 }
 
 const logout = async () => {
@@ -344,6 +642,18 @@ onMounted(() => {
   border-radius: 6px;
   cursor: pointer;
 }
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-danger:disabled {
+  background: #f1aeb5;
+  cursor: not-allowed;
+}
 .msg {
   margin-top: 14px;
   padding: 10px 12px;
@@ -443,6 +753,17 @@ onMounted(() => {
   flex-direction: column;
   gap: 12px;
 }
+.wide-modal {
+  max-width: 760px;
+}
+.modal-box textarea {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: inherit;
+}
 .comment-list {
   border: 1px solid #eee;
   border-radius: 8px;
@@ -476,6 +797,7 @@ onMounted(() => {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 .btn-cancel {
   background: #fff;

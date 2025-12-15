@@ -75,6 +75,11 @@ try {
         $hasEmail = true;
     }
 
+    // Ensure profile table exists BEFORE transactions (MySQL DDL may auto-commit).
+    if ($entryDate !== null || $entryTermCode !== null) {
+        ensure_user_profiles_table($pdo);
+    }
+
     $pdo->beginTransaction();
 
     // Update username/email (if requested)
@@ -109,7 +114,6 @@ try {
 
     // Upsert profile fields
     if ($entryDate !== null || $entryTermCode !== null) {
-        ensure_user_profiles_table($pdo);
         $tc = $entryTermCode;
         if (($tc === null || $tc === '') && $entryDate !== null && $entryDate !== '') {
             $tc = term_code_from_date($entryDate);
@@ -191,4 +195,3 @@ try {
     if ($pdo->inTransaction()) $pdo->rollBack();
     send_json(['status' => 'error', 'message' => $e->getMessage()], 500);
 }
-

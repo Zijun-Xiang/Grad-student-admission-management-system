@@ -141,3 +141,41 @@ function effective_student_id_for_request(array $user, ?string $requestedStudent
 
     return $userId;
 }
+
+function grad_term_code_from_date(string $date): ?string
+{
+    $ts = strtotime($date);
+    if ($ts === false) return null;
+    $year = (int)date('Y', $ts);
+    $month = (int)date('n', $ts);
+    if ($month <= 4) return $year . 'SP';
+    if ($month <= 8) return $year . 'SU';
+    return $year . 'FA';
+}
+
+function grad_current_term_code(): string
+{
+    $year = (int)date('Y');
+    $month = (int)date('n');
+    if ($month <= 4) return $year . 'SP';
+    if ($month <= 8) return $year . 'SU';
+    return $year . 'FA';
+}
+
+function grad_term_index(string $termCode): ?int
+{
+    $termCode = strtoupper(trim($termCode));
+    if (!preg_match('/^(\\d{4})(SP|SU|FA)$/', $termCode, $m)) return null;
+    $year = (int)$m[1];
+    $season = $m[2];
+    $offset = ($season === 'SP') ? 0 : (($season === 'SU') ? 1 : 2);
+    return ($year * 3) + $offset;
+}
+
+function grad_term_number(string $entryTermCode, string $currentTermCode): int
+{
+    $a = grad_term_index($entryTermCode);
+    $b = grad_term_index($currentTermCode);
+    if ($a === null || $b === null) return 1;
+    return max(1, ($b - $a) + 1);
+}

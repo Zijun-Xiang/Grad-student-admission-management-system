@@ -4,7 +4,7 @@ require_method('POST');
 
 include_once '../db.php';
 
-$user = require_login(['faculty', 'admin']);
+$user = require_login(['faculty', 'admin', 'student']);
 $data = get_json_input();
 $docId = (string)($data['doc_id'] ?? '');
 $comment = trim((string)($data['comment'] ?? ''));
@@ -40,6 +40,11 @@ try {
     $role = normalize_role((string)($user['role'] ?? ''));
     $uid = (string)($user['id'] ?? '');
     $studentId = (string)$doc['student_id'];
+
+    // If student, must be the owner.
+    if ($role === 'student' && $uid !== $studentId) {
+        send_json(['status' => 'error', 'message' => 'Forbidden.'], 403);
+    }
 
     // If faculty, must be the student's advisor.
     if ($role === 'faculty') {

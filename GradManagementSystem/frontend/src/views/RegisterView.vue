@@ -68,6 +68,9 @@
         <div v-if="errorMessage" class="error-msg">
           {{ errorMessage }}
         </div>
+        <div v-if="successMessage" class="success-msg">
+          {{ successMessage }}
+        </div>
 
         <button type="submit" class="btn-primary" :disabled="isLoading">
           {{ isLoading ? 'Creating...' : 'Create account' }}
@@ -99,6 +102,7 @@ const password = ref('')
 const confirmPassword = ref('')
 
 const errorMessage = ref('')
+const successMessage = ref('')
 const isLoading = ref(false)
 
 const termCodeFromDate = (dateStr) => {
@@ -144,6 +148,7 @@ watch(entryDate, syncDateToYearAndTerm)
 
 const handleRegister = async () => {
   errorMessage.value = ''
+  successMessage.value = ''
   if (password.value !== confirmPassword.value) {
     errorMessage.value = 'Passwords do not match.'
     return
@@ -165,7 +170,10 @@ const handleRegister = async () => {
     const res = await api.post('register.php', payload)
     if (res.data?.status === 'success') {
       localStorage.setItem('user', JSON.stringify(res.data.user))
-      router.push(res.data.user.role === 'faculty' ? '/faculty' : res.data.user.role === 'admin' ? '/admin' : '/dashboard')
+      successMessage.value = 'Registration successful. Redirecting...'
+      setTimeout(() => {
+        router.push(res.data.user.role === 'faculty' ? '/faculty' : res.data.user.role === 'admin' ? '/admin' : '/dashboard')
+      }, 1500)
     } else {
       errorMessage.value = res.data?.message || 'Registration failed.'
     }
@@ -229,6 +237,16 @@ const handleRegister = async () => {
   margin-bottom: 5px;
   color: #333;
   font-weight: 500;
+}
+
+.success-msg {
+  background: #e8f7ee;
+  border: 1px solid #b6e2c3;
+  color: #1b7a3a;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 12px 0;
+  text-align: center;
 }
 
 input,

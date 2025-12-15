@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-layout">
-    <header class="navbar admin-nav">
+    <header class="navbar">
       <div class="brand">Grad System (Admin Portal)</div>
       <div class="user-info">
         <span v-if="user.username">Admin: {{ user.username }}</span>
@@ -10,12 +10,24 @@
     </header>
 
     <div class="main-container">
+      <aside class="sidebar">
+        <nav>
+          <ul>
+            <li :class="{ active: activeSection === 'holds' }" @click="activeSection = 'holds'">Active Holds</li>
+            <li :class="{ active: activeSection === 'docs' }" @click="activeSection = 'docs'">Pending Documents</li>
+            <li :class="{ active: activeSection === 'defense' }" @click="activeSection = 'defense'">Defense Dates</li>
+            <li :class="{ active: activeSection === 'thesis' }" @click="activeSection = 'thesis'">Thesis / Project</li>
+            <li :class="{ active: activeSection === 'users' }" @click="activeSection = 'users'">User Management</li>
+          </ul>
+        </nav>
+      </aside>
+
       <main class="content">
         <div v-if="error" class="card mb-30 error-card">
           {{ error }}
         </div>
 
-        <div class="card mb-30">
+        <div v-if="activeSection === 'holds'" class="card mb-30">
           <h2>Active Holds</h2>
           <div v-if="loading" class="loading-text">Loading...</div>
           <div v-else-if="holds.length === 0" class="empty-state">No active holds.</div>
@@ -37,7 +49,7 @@
           </div>
         </div>
 
-        <div class="card">
+        <div v-else-if="activeSection === 'docs'" class="card">
           <h2>Pending Documents</h2>
           <div v-if="loading" class="loading-text">Loading...</div>
           <div v-else-if="pendingDocs.length === 0" class="empty-state">No pending documents.</div>
@@ -56,7 +68,90 @@
           </div>
         </div>
 
-        <div class="card mt-30">
+        <div v-else-if="activeSection === 'defense'" class="stack">
+          <div class="card mb-30">
+            <h2>Defense Dates (Admin)</h2>
+            <p class="subtitle">
+              Publish a defense date window per year. Students must pick a defense date within the window.
+            </p>
+
+            <div v-if="defenseMsg" class="msg" :class="{ ok: defenseOk, bad: !defenseOk }">{{ defenseMsg }}</div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Year</label>
+                <input v-model="defenseForm.year" type="number" min="2000" max="2100" />
+              </div>
+              <div class="form-group">
+                <label>Start Date</label>
+                <input v-model="defenseForm.start_date" type="date" />
+              </div>
+              <div class="form-group">
+                <label>End Date</label>
+                <input v-model="defenseForm.end_date" type="date" />
+              </div>
+              <div class="form-group" style="align-self: end">
+                <button class="btn-approve" @click="saveDefenseWindow" :disabled="defenseBusy">
+                  {{ defenseBusy ? 'Saving...' : 'Save' }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="defenseLoading" class="loading-text">Loading windows...</div>
+            <div v-else-if="defenseWindows.length === 0" class="empty-state">No windows.</div>
+            <div v-else class="table mt-20">
+              <div class="row header">
+                <div>Year</div>
+                <div>Start</div>
+                <div>End</div>
+                <div></div>
+              </div>
+              <div v-for="w in defenseWindows" :key="w.year" class="row">
+                <div><strong>{{ w.year }}</strong></div>
+                <div>{{ w.start_date }}</div>
+                <div>{{ w.end_date }}</div>
+                <div class="actions">
+                  <button class="btn-view" @click="prefillDefenseWindow(w)" :disabled="defenseBusy">Edit</button>
+                  <button class="btn-reject" @click="deleteDefenseWindow(w)" :disabled="defenseBusy">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="activeSection === 'thesis'" class="card mt-30">
+          <h2>Student Thesis / Project Timeline</h2>
+
+          <div class="form-row" style="margin: 10px 0 6px">
+            <input v-model="thesisSearch" class="select" type="text" placeholder="Search students..." />
+            <button class="btn-view" @click="fetchThesisSchedules" :disabled="thesisLoading">Refresh</button>
+          </div>
+
+          <div v-if="thesisLoading" class="loading-text">Loading...</div>
+          <div v-else-if="filteredThesisSchedules.length === 0" class="empty-state">No data.</div>
+
+          <div v-else class="table mt-20">
+            <div class="row header thesis-row">
+              <div>Student</div>
+              <div>Type</div>
+              <div>Submission</div>
+              <div>Defense</div>
+              <div>Title</div>
+            </div>
+            <div v-for="r in filteredThesisSchedules" :key="r.student_id" class="row thesis-row">
+              <div>
+                <strong>{{ r.username || `#${r.student_id}` }}</strong>
+                <span class="muted"> (#{{ r.student_id }})</span>
+              </div>
+              <div>{{ r.type || '-' }}</div>
+              <div>{{ r.submission_date || '-' }}</div>
+              <div>{{ r.defense_date || '-' }}</div>
+              <div>{{ r.title || '-' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="card mt-30">
           <h2>User Management</h2>
 
 	          <div class="user-form">
@@ -138,6 +233,9 @@
 	  <div v-if="showEditModal" class="modal-overlay">
 	    <div class="modal-box wide-modal">
 	      <h3>Edit Registration Info</h3>
+        <div v-if="editMsg" class="inline-msg" :class="{ ok: editMsgType === 'ok', err: editMsgType === 'err' }">
+          {{ editMsg }}
+        </div>
 	      <div v-if="editUser" class="edit-grid">
 	        <div class="form-group">
 	          <label>User ID</label>
@@ -174,13 +272,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { apiBaseURL } from '../api/client'
 
 const router = useRouter()
 
 const user = ref({})
+const activeSection = ref('holds')
 const loading = ref(true)
 const holds = ref([])
 const pendingDocs = ref([])
@@ -201,6 +300,21 @@ const newUser = ref({
 
 const showEditModal = ref(false)
 const editUser = ref(null)
+const editMsg = ref('')
+const editMsgType = ref('') // ok | err
+
+// Defense windows (admin)
+const defenseLoading = ref(false)
+const defenseBusy = ref(false)
+const defenseWindows = ref([])
+const defenseForm = ref({ year: String(new Date().getFullYear()), start_date: '', end_date: '' })
+const defenseMsg = ref('')
+const defenseOk = ref(true)
+
+// Thesis schedules (admin)
+const thesisLoading = ref(false)
+const thesisSchedules = ref([])
+const thesisSearch = ref('')
 
 const docUrl = (doc) => `${apiBaseURL}/download_document.php?doc_id=${doc.doc_id}`
 const holdKey = (h) => `${h.student_id}-${h.hold_type}-${h.term_code || ''}`
@@ -243,6 +357,96 @@ const fetchDashboard = async () => {
     loading.value = false
   }
 }
+
+const fetchDefenseWindows = async () => {
+  defenseLoading.value = true
+  try {
+    const res = await api.get('defense_windows_list.php')
+    if (res.data?.status === 'success') defenseWindows.value = res.data.data || []
+  } catch (e) {
+    // ignore
+  } finally {
+    defenseLoading.value = false
+  }
+}
+
+const prefillDefenseWindow = (w) => {
+  defenseForm.value = { year: String(w.year), start_date: w.start_date, end_date: w.end_date }
+  defenseMsg.value = ''
+}
+
+const saveDefenseWindow = async () => {
+  defenseMsg.value = ''
+  defenseOk.value = true
+  defenseBusy.value = true
+  try {
+    const payload = {
+      year: Number(defenseForm.value.year),
+      start_date: defenseForm.value.start_date,
+      end_date: defenseForm.value.end_date,
+    }
+    const res = await api.post('admin_defense_windows_upsert.php', payload)
+    if (res.data?.status === 'success') {
+      defenseMsg.value = res.data?.message || 'Saved.'
+      defenseOk.value = true
+      await fetchDefenseWindows()
+    } else {
+      defenseMsg.value = res.data?.message || 'Save failed.'
+      defenseOk.value = false
+    }
+  } catch (e) {
+    defenseMsg.value = e?.response?.data?.message || 'Save failed.'
+    defenseOk.value = false
+  } finally {
+    defenseBusy.value = false
+  }
+}
+
+const deleteDefenseWindow = async (w) => {
+  defenseMsg.value = ''
+  defenseOk.value = true
+  defenseBusy.value = true
+  try {
+    const res = await api.post('admin_defense_windows_delete.php', { year: Number(w.year) })
+    if (res.data?.status === 'success') {
+      defenseMsg.value = res.data?.message || 'Deleted.'
+      defenseOk.value = true
+      await fetchDefenseWindows()
+    } else {
+      defenseMsg.value = res.data?.message || 'Delete failed.'
+      defenseOk.value = false
+    }
+  } catch (e) {
+    defenseMsg.value = e?.response?.data?.message || 'Delete failed.'
+    defenseOk.value = false
+  } finally {
+    defenseBusy.value = false
+  }
+}
+
+const fetchThesisSchedules = async () => {
+  thesisLoading.value = true
+  try {
+    const res = await api.get('admin_get_thesis_projects.php')
+    if (res.data?.status === 'success') thesisSchedules.value = res.data.data || []
+  } catch (e) {
+    // ignore
+  } finally {
+    thesisLoading.value = false
+  }
+}
+
+const filteredThesisSchedules = computed(() => {
+  const q = (thesisSearch.value || '').trim().toLowerCase()
+  const rows = thesisSchedules.value || []
+  if (!q) return rows
+  return rows.filter((r) => {
+    const fields = [r.student_id, r.username, r.email, r.first_name, r.last_name, r.type, r.title, r.submission_date, r.defense_date]
+      .map((x) => String(x || '').toLowerCase())
+      .join(' ')
+    return fields.includes(q)
+  })
+})
 
 const termCodeFromDate = (dateStr) => {
   const d = new Date(dateStr + 'T00:00:00')
@@ -333,6 +537,8 @@ const deleteUser = async (u) => {
 }
 
 const openEdit = (u) => {
+  editMsg.value = ''
+  editMsgType.value = ''
   editUser.value = {
     user_id: u.user_id,
     role: u.role,
@@ -355,11 +561,15 @@ watch(
 const closeEdit = () => {
   showEditModal.value = false
   editUser.value = null
+  editMsg.value = ''
+  editMsgType.value = ''
 }
 
 const saveEdit = async () => {
   if (!editUser.value) return
   usersLoading.value = true
+  editMsg.value = ''
+  editMsgType.value = ''
   try {
     const payload = {
       user_id: editUser.value.user_id,
@@ -374,10 +584,12 @@ const saveEdit = async () => {
       await refreshUsers()
       await fetchDashboard()
     } else {
-      alert(res.data?.message || 'Update failed')
+      editMsg.value = res.data?.message || 'Update failed'
+      editMsgType.value = 'err'
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Update failed')
+    editMsg.value = e?.response?.data?.message || 'Update failed'
+    editMsgType.value = 'err'
   } finally {
     usersLoading.value = false
   }
@@ -395,9 +607,7 @@ const reviewDoc = async (doc, action) => {
       comment,
     })
     if (res.data?.status === 'success') {
-      if (res.data.registrar_code) {
-        alert(`Registrar code generated:\n${res.data.registrar_code}`)
-      }
+      alert(res.data?.message || 'Saved.')
       await fetchDashboard()
     } else {
       alert(res.data?.message || 'Action failed')
@@ -441,7 +651,7 @@ const logout = async () => {
 }
 
 const refreshAll = async () => {
-  await Promise.all([fetchDashboard(), refreshUsers()])
+  await Promise.all([fetchDashboard(), refreshUsers(), fetchDefenseWindows(), fetchThesisSchedules()])
 }
 
 onMounted(() => {
@@ -459,10 +669,10 @@ onMounted(() => {
   flex-direction: column;
   width: 100vw;
   height: 100vh;
-  background-color: #f0f2f5;
+  background-color: #f4f7fa;
 }
-.admin-nav {
-  background-color: #1f2937;
+.navbar {
+  background-color: #003366;
   color: white;
   padding: 0 2rem;
   height: 64px;
@@ -489,18 +699,50 @@ onMounted(() => {
 }
 .main-container {
   flex: 1;
-  padding: 40px;
-  overflow-y: auto;
   display: flex;
-  justify-content: center;
+  overflow: hidden;
+}
+.sidebar {
+  width: 260px;
+  background: white;
+  border-right: 1px solid #dee2e6;
+  padding-top: 1rem;
+}
+.sidebar li {
+  padding: 15px 25px;
+  cursor: pointer;
+  color: #495057;
+}
+.sidebar li.active {
+  background-color: #e3f2fd;
+  color: #003366;
+  border-left: 4px solid #003366;
 }
 .content {
-  width: 100%;
-  max-width: 1100px;
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+.inline-msg {
+  margin: 12px 0 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  border: 1px solid transparent;
+}
+.inline-msg.ok {
+  background: #e8f5e9;
+  border-color: #c8e6c9;
+  color: #2e7d32;
+}
+.inline-msg.err {
+  background: #ffebee;
+  border-color: #ffcdd2;
+  color: #c62828;
 }
 .card {
   background: white;
-  padding: 30px;
+  padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
@@ -519,6 +761,31 @@ onMounted(() => {
 }
 .loading-text {
   color: #666;
+}
+.subtitle {
+  color: #555;
+  margin: 8px 0 16px;
+}
+.msg {
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: 600;
+}
+.msg.ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+.msg.bad {
+  background: #fff5f5;
+  color: #c92a2a;
+  border: 1px solid #ffc9c9;
+}
+.muted {
+  color: #6c757d;
+  font-size: 12px;
 }
 .error-card {
   border: 1px solid #fecaca;
@@ -591,6 +858,9 @@ onMounted(() => {
 .row.header {
   background: #f8fafc;
   font-weight: 700;
+}
+.row.thesis-row {
+  grid-template-columns: 2fr 0.8fr 1fr 1fr 2fr;
 }
 
 .user-form {

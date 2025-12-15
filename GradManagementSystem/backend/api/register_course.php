@@ -21,11 +21,22 @@ $minCredits = (int)(getenv('TERM_MIN_CREDITS') ?: 12);
 $maxCredits = (int)(getenv('TERM_MAX_CREDITS') ?: 20);
 
 try {
-    $stmtHolds = $pdo->prepare('SELECT COUNT(*) FROM holds WHERE student_id = :sid AND is_active = TRUE');
+    // Holds gating:
+    // - In general, any active hold blocks registration.
+    // - Exception: if the ONLY active hold(s) are "research_method" and the student is registering for the Research Method course,
+    //   allow registering that course so faculty can verify and lift the hold.
+    $stmtHolds = $pdo->prepare('SELECT hold_type FROM holds WHERE student_id = :sid AND is_active = TRUE');
     $stmtHolds->bindParam(':sid', $studentId);
     $stmtHolds->execute();
-    if ((int)$stmtHolds->fetchColumn() > 0) {
-        send_json(['status' => 'error', 'message' => 'You have active holds. Registration is disabled.'], 403);
+    $activeHoldTypes = $stmtHolds->fetchAll(PDO::FETCH_COLUMN);
+
+    if (!empty($activeHoldTypes)) {
+        $isResearchMethodCourse = strcasecmp($courseCode, $researchMethodCourseCode) === 0;
+        $onlyResearchMethodHold = count(array_unique(array_map('strval', $activeHoldTypes))) === 1 && (string)$activeHoldTypes[0] === 'research_method';
+
+        if (!($isResearchMethodCourse && $onlyResearchMethodHold)) {
+            send_json(['status' => 'error', 'message' => 'You have active holds. Registration is disabled.'], 403);
+        }
     }
 
     // Enforce max credits per term (best-effort; assumes current registrations are for current term).
@@ -92,33 +103,6 @@ try {
 
     if (!$ok) {
         send_json(['status' => 'error', 'message' => 'Registration failed.'], 500);
-    }
-
-    // If this is the Research Method course, automatically lift the related hold.
-    if (strcasecmp($courseCode, $researchMethodCourseCode) === 0) {
-        try {
-            $stmtHold = $pdo->prepare("UPDATE holds SET is_active = FALSE, resolved_at = NOW()
-                                       WHERE student_id = :sid AND hold_type = 'research_method' AND is_active = TRUE");
-            $stmtHold->bindParam(':sid', $studentId);
-            $stmtHold->execute();
-
-            if ($stmtHold->rowCount() > 0) {
-                $releaseCode = generate_registrar_code();
-                $createdBy = (string)(current_user()['id'] ?? $studentId);
-                $payload = json_encode(['course_code' => $courseCode, 'action' => 'registered']);
-                $stmtSig = $pdo->prepare(
-                    "INSERT INTO registrar_signals (student_id, hold_type, term_code, code, created_by, payload)
-                     VALUES (:sid, 'research_method', NULL, :code, :by, :payload)"
-                );
-                $stmtSig->bindParam(':sid', $studentId);
-                $stmtSig->bindParam(':code', $releaseCode);
-                $stmtSig->bindParam(':by', $createdBy);
-                $stmtSig->bindParam(':payload', $payload);
-                $stmtSig->execute();
-            }
-        } catch (Exception $e) {
-            // ignore
-        }
     }
 
     send_json(['status' => 'success', 'message' => 'Course registered successfully.']);

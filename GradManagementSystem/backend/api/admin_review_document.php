@@ -39,75 +39,12 @@ try {
     $stmtDoc->bindParam(':did', $docId);
     $stmtDoc->execute();
 
-    $holdType = null;
-    if ($docType === 'admission_letter') {
-        $holdType = 'admission_letter';
-    } elseif ($docType === 'major_professor_form') {
-        $holdType = 'major_professor_form';
-    }
-
-    $registrarCode = null;
-    $resolvedHolds = 0;
-    $termCode = null;
-
-    if ($holdType !== null) {
-        // Best-effort: capture term_code from the active hold if the column exists.
-        try {
-            $stmtHoldTerm = $pdo->prepare(
-                "SELECT term_code FROM holds
-                 WHERE student_id = :sid AND hold_type = :ht AND is_active = TRUE
-                 ORDER BY id DESC
-                 LIMIT 1"
-            );
-            $stmtHoldTerm->bindParam(':sid', $studentId);
-            $stmtHoldTerm->bindParam(':ht', $holdType);
-            $stmtHoldTerm->execute();
-            $termCode = $stmtHoldTerm->fetchColumn();
-            if ($termCode === false) $termCode = null;
-        } catch (Exception $e) {
-            $termCode = null;
-        }
-
-        $stmtHold = $pdo->prepare(
-            "UPDATE holds SET is_active = FALSE, resolved_at = NOW()
-             WHERE student_id = :sid AND hold_type = :ht AND is_active = TRUE"
-        );
-        $stmtHold->bindParam(':sid', $studentId);
-        $stmtHold->bindParam(':ht', $holdType);
-        $stmtHold->execute();
-        $resolvedHolds = $stmtHold->rowCount();
-
-        // Registrar signal
-        try {
-            $registrarCode = generate_registrar_code();
-            $createdBy = (string)(current_user()['id'] ?? '');
-            $payload = json_encode(['doc_id' => $docId, 'doc_type' => $docType, 'action' => 'approve']);
-            $stmtSig = $pdo->prepare(
-                "INSERT INTO registrar_signals (student_id, hold_type, term_code, code, created_by, payload)
-                 VALUES (:sid, :ht, :term, :code, :by, :payload)"
-            );
-            $stmtSig->bindParam(':sid', $studentId);
-            $stmtSig->bindParam(':ht', $holdType);
-            $stmtSig->bindParam(':term', $termCode);
-            $stmtSig->bindParam(':code', $registrarCode);
-            $stmtSig->bindParam(':by', $createdBy);
-            $stmtSig->bindParam(':payload', $payload);
-            $stmtSig->execute();
-        } catch (Exception $e) {
-            $registrarCode = null;
-        }
-    }
-
     send_json([
         'status' => 'success',
-        'message' => $holdType ? 'Document approved and Hold lifted.' : 'Document approved.',
+        'message' => 'Document approved. You can now lift the corresponding Hold in the Active Holds table (if present).',
         'doc_type' => $docType,
-        'hold_type' => $holdType,
-        'resolved_holds' => $resolvedHolds,
-        'registrar_code' => $registrarCode,
-        'term_code' => $termCode,
+        'student_id' => $studentId,
     ]);
 } catch (Exception $e) {
     send_json(['status' => 'error', 'message' => $e->getMessage()], 500);
 }
-

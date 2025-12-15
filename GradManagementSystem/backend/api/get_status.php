@@ -57,6 +57,44 @@ try {
         $profile = null;
     }
 
+    // Term info for gating (server-side)
+    $currentTermCode = grad_current_term_code();
+    $entryDate = is_array($profile) ? (string)($profile['entry_date'] ?? '') : '';
+    $entryTermCode = is_array($profile) ? (string)($profile['entry_term_code'] ?? '') : '';
+
+    if ($entryTermCode === '') {
+        // Best-effort fallback to student_details.entry_term_code if available.
+        try {
+            $stmtEntry = $pdo->prepare("SELECT entry_term_code FROM student_details WHERE student_id = :sid LIMIT 1");
+            $stmtEntry->bindParam(':sid', $studentId);
+            $stmtEntry->execute();
+            $tc = $stmtEntry->fetchColumn();
+            if ($tc !== false && $tc !== null) $entryTermCode = (string)$tc;
+        } catch (Exception $e) {
+            // ignore
+        }
+    }
+    if ($entryTermCode === '' && $entryDate !== '') {
+        $entryTermCode = grad_term_code_from_date($entryDate) ?: '';
+    }
+    if ($entryTermCode === '') {
+        $entryTermCode = $currentTermCode;
+    }
+
+    $termNumber = grad_term_number($entryTermCode, $currentTermCode);
+    $term = [
+        'current_term_code' => $currentTermCode,
+        'entry_term_code' => $entryTermCode,
+        'entry_date' => $entryDate,
+        'term_number' => $termNumber,
+        'unlocks' => [
+            'term2' => $termNumber >= 2,
+            'term3' => $termNumber >= 3,
+            'term4' => $termNumber >= 4,
+            'term5' => $termNumber >= 5,
+        ],
+    ];
+
     // Core course checklist (optional)
     $coreChecklist = null;
     try {
@@ -88,6 +126,7 @@ try {
         'deficiencies' => $deficiencies,
         'mp_info' => $mpInfo,
         'profile' => $profile,
+        'term' => $term,
         'core_checklist' => $coreChecklist,
     ]);
 } catch (Exception $e) {

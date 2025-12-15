@@ -4,27 +4,47 @@
       <div class="brand">Grad System</div>
       <div class="user-info">
         <span>Welcome, {{ user.username }}</span>
-        <button @click="router.push('/dashboard')" class="btn-back">Back to Dashboard</button>
+        <button @click="logout" class="btn-logout">Logout</button>
       </div>
     </header>
 
     <div class="main-container">
+      <aside class="sidebar">
+        <nav>
+          <ul>
+            <li @click="router.push('/dashboard')">Dashboard</li>
+            <li @click="router.push('/my-courses')">My Courses</li>
+            <li @click="router.push('/documents')">Documents</li>
+            <li @click="router.push('/assignments')">Assignments</li>
+            <li class="active">Major Professor</li>
+            <li v-if="termNumber >= 3" @click="router.push('/thesis-project')">Thesis / Project</li>
+          </ul>
+        </nav>
+      </aside>
+
       <main class="content">
-        <div class="card">
+        <div class="content-inner">
+          <div class="card">
           <h2>Select Major Professor</h2>
+
+          <div v-if="termNumber < 2" class="status-box pending">
+            <h3>Locked</h3>
+            <p>Major Professor selection is available starting <strong>Term 2</strong>.</p>
+            <p class="text-muted">You are currently in Term {{ termNumber }}.</p>
+          </div>
 
           <div v-if="currentStatus === 'approved'" class="status-box approved">
             <h3>You have a Major Professor</h3>
             <p>Your advisor is: <strong>{{ professorName }}</strong></p>
           </div>
 
-          <div v-else-if="currentStatus === 'pending'" class="status-box pending">
+          <div v-else-if="termNumber >= 2 && currentStatus === 'pending'" class="status-box pending">
             <h3>Request Pending</h3>
             <p>You have requested <strong>{{ professorName }}</strong> as your advisor.</p>
             <p>Please wait for their approval.</p>
           </div>
 
-          <div v-else class="form-block">
+          <div v-else-if="termNumber >= 2" class="form-block">
             <div class="alert-box">You have a "Major Professor" Hold. Please select an advisor to proceed.</div>
 
             <div class="form-section">
@@ -41,7 +61,7 @@
           </div>
         </div>
 
-        <div v-if="currentStatus === 'approved'" class="card mt-20">
+          <div v-if="currentStatus === 'approved'" class="card mt-20">
           <h2>Major Professor Form (Term 2)</h2>
           <p class="text-muted">
             All document uploads are handled in <strong>Documents</strong>. This page only manages advisor selection.
@@ -57,6 +77,7 @@
             <p v-if="mpFormStatus === 'rejected'" class="text-error">Previous upload was rejected. Please re-upload.</p>
             <p v-else>No form uploaded yet.</p>
             <button class="btn-primary" @click="router.push('/documents')">Go to Documents</button>
+          </div>
           </div>
         </div>
       </main>
@@ -80,6 +101,7 @@ const professorName = ref('')
 const documents = ref([])
 
 const mpFormStatus = ref('none')
+const termNumber = ref(1)
 
 onMounted(() => {
   const storedUser = localStorage.getItem('user')
@@ -106,6 +128,8 @@ const refreshMyStatus = async () => {
     const res = await api.get('get_status.php')
     if (res.data.status !== 'success') return
 
+    termNumber.value = Number(res.data?.term?.term_number || 1)
+
     const info = res.data.mp_info
     if (info) {
       currentStatus.value = info.mp_status
@@ -121,11 +145,10 @@ const refreshMyStatus = async () => {
 }
 
 const submitRequest = async () => {
-  if (!confirm('Are you sure you want to request this professor?')) return
   try {
     const res = await api.post('request_major_professor.php', { professor_id: selectedProf.value })
     if (res.data.status === 'success') {
-      alert('Request Sent!')
+      alert('Request sent. Please wait for approval.')
       currentStatus.value = 'pending'
       const prof = facultyList.value.find((p) => p.user_id === selectedProf.value)
       professorName.value = prof ? prof.username : 'Unknown'
@@ -135,6 +158,14 @@ const submitRequest = async () => {
   } catch (e) {
     alert('Network Error')
   }
+}
+
+const logout = async () => {
+  try {
+    await api.post('logout.php')
+  } catch {}
+  localStorage.removeItem('user')
+  router.push('/')
 }
 
 // Upload moved to DocumentsView.vue
@@ -157,15 +188,44 @@ const submitRequest = async () => {
   justify-content: space-between;
   align-items: center;
 }
+.btn-logout {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
 .main-container {
   flex: 1;
   display: flex;
-  justify-content: center;
-  padding: 40px;
+  overflow: hidden;
+}
+.sidebar {
+  width: 260px;
+  background: white;
+  border-right: 1px solid #dee2e6;
+  padding-top: 1rem;
+}
+.sidebar li {
+  padding: 15px 25px;
+  cursor: pointer;
+  color: #495057;
+}
+.sidebar li.active {
+  background-color: #e3f2fd;
+  color: #003366;
+  border-left: 4px solid #003366;
 }
 .content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+.content-inner {
   width: 100%;
   max-width: 800px;
+  margin: 0 auto;
 }
 .card {
   background: white;
@@ -175,14 +235,6 @@ const submitRequest = async () => {
 }
 .mt-20 {
   margin-top: 20px;
-}
-.btn-back {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid white;
-  color: white;
-  padding: 5px 15px;
-  cursor: pointer;
-  border-radius: 4px;
 }
 h2 {
   color: #003366;
