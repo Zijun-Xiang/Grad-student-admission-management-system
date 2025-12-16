@@ -4,6 +4,7 @@ require_login(['admin']);
 require_method('POST');
 
 include_once '../db.php';
+require_once __DIR__ . '/majors_common.php';
 
 $data = get_json_input();
 $userId = (string)($data['user_id'] ?? '');
@@ -11,6 +12,7 @@ $username = isset($data['username']) ? trim((string)$data['username']) : null;
 $email = isset($data['email']) ? trim((string)$data['email']) : null;
 $entryDate = isset($data['entry_date']) ? trim((string)$data['entry_date']) : null;
 $entryTermCode = isset($data['entry_term_code']) ? trim((string)$data['entry_term_code']) : null;
+$majorCode = isset($data['major_code']) ? normalize_major_code((string)$data['major_code']) : null;
 $firstName = isset($data['first_name']) ? trim((string)$data['first_name']) : null;
 $lastName = isset($data['last_name']) ? trim((string)$data['last_name']) : null;
 
@@ -37,9 +39,11 @@ function ensure_user_profiles_table(PDO $pdo): void
             user_id BIGINT UNSIGNED NOT NULL,
             entry_date DATE NULL,
             entry_term_code VARCHAR(32) NULL,
+            major_code VARCHAR(16) NULL,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (user_id),
-            KEY idx_user_profiles_term (entry_term_code)
+            KEY idx_user_profiles_term (entry_term_code),
+            KEY idx_user_profiles_major (major_code)
         )"
     );
 }
@@ -75,9 +79,14 @@ try {
         $hasEmail = true;
     }
 
-    // Ensure profile table exists BEFORE transactions (MySQL DDL may auto-commit).
-    if ($entryDate !== null || $entryTermCode !== null) {
-        ensure_user_profiles_table($pdo);
+    // Ensure profile/majors schema exists BEFORE transactions (MySQL DDL may auto-commit).
+    if ($entryDate !== null || $entryTermCode !== null || $majorCode !== null) {
+        ensure_majors_schema($pdo);
+    }
+
+    // Validate major BEFORE starting transaction (avoid DDL/implicit commit issues).
+    if ($majorCode !== null && $majorCode !== '' && !major_code_exists($pdo, $majorCode)) {
+        send_json(['status' => 'error', 'message' => 'Invalid major.'], 400);
     }
 
     $pdo->beginTransaction();
@@ -113,21 +122,26 @@ try {
     }
 
     // Upsert profile fields
-    if ($entryDate !== null || $entryTermCode !== null) {
+    if ($entryDate !== null || $entryTermCode !== null || $majorCode !== null) {
         $tc = $entryTermCode;
         if (($tc === null || $tc === '') && $entryDate !== null && $entryDate !== '') {
             $tc = term_code_from_date($entryDate);
         }
+
+        $mc = ($majorCode === null || $majorCode === '') ? null : $majorCode;
+
         $stmtProf = $pdo->prepare(
-            "INSERT INTO user_profiles (user_id, entry_date, entry_term_code)
-             VALUES (:uid, :ed, :tc)
+            "INSERT INTO user_profiles (user_id, entry_date, entry_term_code, major_code)
+             VALUES (:uid, :ed, :tc, :mc)
              ON DUPLICATE KEY UPDATE
                 entry_date = COALESCE(VALUES(entry_date), entry_date),
-                entry_term_code = COALESCE(VALUES(entry_term_code), entry_term_code)"
+                entry_term_code = COALESCE(VALUES(entry_term_code), entry_term_code),
+                major_code = COALESCE(VALUES(major_code), major_code)"
         );
         $stmtProf->bindParam(':uid', $userId);
         $stmtProf->bindValue(':ed', $entryDate, ($entryDate === null || $entryDate === '') ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $stmtProf->bindValue(':tc', $tc, ($tc === null || $tc === '') ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmtProf->bindValue(':mc', $mc, $mc === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $stmtProf->execute();
 
         // Best-effort: if student, tag active admission_letter hold with new term_code (only when empty)

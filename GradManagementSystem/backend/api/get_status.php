@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../bootstrap.php';
 
 include_once '../db.php';
+require_once __DIR__ . '/majors_common.php';
 
 $user = require_login();
 $studentId = effective_student_id_for_request($user, isset($_GET['student_id']) ? (string)$_GET['student_id'] : null);
@@ -38,17 +39,18 @@ try {
     // Entry/admission profile (optional)
     $profile = null;
     try {
-        $pdo->exec(
-            "CREATE TABLE IF NOT EXISTS user_profiles (
-                user_id BIGINT UNSIGNED NOT NULL,
-                entry_date DATE NULL,
-                entry_term_code VARCHAR(32) NULL,
-                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (user_id),
-                KEY idx_user_profiles_term (entry_term_code)
-            )"
+        ensure_majors_schema($pdo);
+        $stmtProf = $pdo->prepare(
+            "SELECT entry_date,
+                    entry_term_code,
+                    COALESCE(up.major_code, '" . majors_default_code() . "') AS major_code,
+                    COALESCE(m.major_name, 'Computer Science') AS major_name
+             FROM user_profiles up
+             LEFT JOIN majors m
+               ON m.major_code = COALESCE(up.major_code, '" . majors_default_code() . "')
+             WHERE up.user_id = :uid
+             LIMIT 1"
         );
-        $stmtProf = $pdo->prepare("SELECT entry_date, entry_term_code FROM user_profiles WHERE user_id = :uid LIMIT 1");
         $stmtProf->bindParam(':uid', $studentId);
         $stmtProf->execute();
         $row = $stmtProf->fetch(PDO::FETCH_ASSOC);

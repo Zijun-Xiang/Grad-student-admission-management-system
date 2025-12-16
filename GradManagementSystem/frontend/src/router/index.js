@@ -65,6 +65,12 @@ const router = createRouter({
       component: () => import('../views/ThesisProjectView.vue'),
       meta: { requiresAuth: true, role: 'student' },
     },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true, role: 'student' },
+    },
   ],
 })
 

@@ -18,6 +18,7 @@
             <li :class="{ active: activeSection === 'docs' }" @click="activeSection = 'docs'">Advisee Docs</li>
             <li :class="{ active: activeSection === 'thesis' }" @click="activeSection = 'thesis'">Thesis / Project</li>
             <li :class="{ active: activeSection === 'mp' }" @click="activeSection = 'mp'">MP Requests</li>
+            <li :class="{ active: activeSection === 'profile' }" @click="openProfile">Profile</li>
           </ul>
         </nav>
       </aside>
@@ -28,6 +29,7 @@
           <p class="subtitle">
             You can lift the <strong>research_method</strong> hold only after the student has registered/taken the Research Method course.
           </p>
+          <div v-if="researchMsg" class="msg" :class="{ ok: researchOk, bad: !researchOk }">{{ researchMsg }}</div>
 
             <div v-if="holdsLoading" class="loading-text">Loading...</div>
             <div v-else-if="researchHolds.length === 0" class="empty-state">No active research_method holds for your advisees.</div>
@@ -43,10 +45,48 @@
                     Proof uploaded: <strong>{{ String(h.proof_status || 'pending') }}</strong>
                     <span v-if="h.proof_upload_date" class="muted"> · {{ h.proof_upload_date }}</span>
                   </span>
+                  <span v-if="h.proof_comment" class="file-link">
+                    Reviewer comment: <span class="muted">{{ h.proof_comment }}</span>
+                  </span>
+                  <div v-if="h.proof_doc_id" class="form-row" style="margin-top: 10px">
+                    <input
+                      v-model="researchNotes[h.student_id]"
+                      class="select"
+                      type="text"
+                      placeholder="Optional comment (visible to student)..."
+                    />
+                  </div>
                 </div>
                 <div class="actions">
                   <a v-if="h.proof_doc_id" :href="docUrl({ doc_id: h.proof_doc_id })" target="_blank" class="btn-view">View Proof</a>
-                  <button class="btn-approve" @click="liftResearchHold(h)" :disabled="!Number(h.has_research_method) || busyStudentId === String(h.student_id)">
+                  <button v-if="h.proof_doc_id" class="btn-view" @click="openResearchProofComments(h)" :disabled="busyStudentId === String(h.student_id)">
+                    Comments
+                  </button>
+
+                  <button
+                    v-if="h.proof_doc_id"
+                    class="btn-approve"
+                    @click="reviewResearchProof(h, 'approve')"
+                    :disabled="busyStudentId === String(h.student_id)"
+                  >
+                    {{ busyStudentId === String(h.student_id) ? 'Working...' : 'Approve' }}
+                  </button>
+                  <button
+                    v-if="h.proof_doc_id"
+                    class="btn-reject"
+                    @click="reviewResearchProof(h, 'reject')"
+                    :disabled="busyStudentId === String(h.student_id)"
+                  >
+                    {{ busyStudentId === String(h.student_id) ? 'Working...' : 'Reject' }}
+                  </button>
+
+                  <button
+                    v-else
+                    class="btn-approve"
+                    @click="liftResearchHold(h)"
+                    :disabled="!Number(h.has_research_method) || busyStudentId === String(h.student_id)"
+                    :title="!Number(h.has_research_method) ? 'Student must register Research Method first.' : ''"
+                  >
                     {{ busyStudentId === String(h.student_id) ? 'Working...' : 'Lift Hold' }}
                   </button>
                 </div>
@@ -186,10 +226,29 @@
 
           <div class="card mb-30">
             <h2>My Assignments</h2>
+            <div class="form-row" style="margin: 10px 0 6px">
+              <select v-model="myAssnFilters.course_code" class="select" style="min-width: 320px">
+                <option value="">All courses</option>
+                <option v-for="c in assignmentCourses" :key="c.course_code" :value="c.course_code">
+                  {{ c.course_name ? `${c.course_name} (${c.course_code})` : c.course_code }}
+                </option>
+              </select>
+              <select v-model="myAssnFilters.student_id" class="select" style="min-width: 320px">
+                <option value="">All students</option>
+                <option v-for="s in students" :key="s.student_id" :value="String(s.student_id)">
+                  {{ studentOptionLabel(s) }}
+                </option>
+              </select>
+              <button class="btn-view" @click="clearMyAssnFilters" :disabled="!myAssnFilters.course_code && !myAssnFilters.student_id">
+                Clear
+              </button>
+              <button class="btn-view" @click="fetchAssignments" :disabled="assignmentsLoading">Refresh</button>
+            </div>
             <div v-if="assignmentsLoading" class="loading-text">Loading...</div>
             <div v-else-if="assignments.length === 0" class="empty-state">No assignments yet.</div>
             <div v-else class="review-list">
-              <div v-for="a in assignments" :key="a.id" class="review-item">
+              <div v-if="filteredMyAssignments.length === 0" class="empty-state">No assignments match your filters.</div>
+              <div v-for="a in filteredMyAssignments" :key="a.id" class="review-item">
                 <div class="info">
                   <span class="student-name">{{ a.title }}</span>
                   <span class="file-link">
@@ -289,6 +348,50 @@
                 <a :href="docUrl(doc)" target="_blank" class="btn-view">View</a>
                 <button class="btn-view" @click="openComments(doc)">Comments</button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="activeSection === 'profile'" class="card mb-30">
+          <h2>My Profile</h2>
+          <div v-if="profileLoading" class="loading-text">Loading...</div>
+
+          <div v-else class="form-grid">
+            <div v-if="profileMsg" class="msg" :class="{ ok: profileOk, bad: !profileOk }">{{ profileMsg }}</div>
+
+            <div class="form-group">
+              <label>Username</label>
+              <input :value="profile.username" disabled />
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <input :value="profile.role" disabled />
+            </div>
+
+            <div class="form-group">
+              <label>Email</label>
+              <input v-model="profileForm.email" type="email" placeholder="Optional" />
+            </div>
+            <div class="form-group">
+              <label>Major / Program</label>
+              <select v-model="profileForm.major_code">
+                <option v-for="m in profileMajors" :key="m.major_code" :value="m.major_code">{{ m.major_name }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>New Password</label>
+              <input v-model="profileForm.password" type="password" placeholder="Leave blank to keep current password" />
+            </div>
+            <div class="form-group">
+              <label>Confirm Password</label>
+              <input v-model="profileForm.confirm" type="password" placeholder="Re-enter new password" />
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-approve" @click="saveMyProfile" :disabled="profileSaving">
+                {{ profileSaving ? 'Saving...' : 'Save Changes' }}
+              </button>
             </div>
           </div>
         </div>
@@ -557,9 +660,22 @@ const activeSection = ref('research')
 const mpRequests = ref([])
 const adviseeDocs = ref([])
 
+// Profile
+const profileLoading = ref(false)
+const profileSaving = ref(false)
+const profileMsg = ref('')
+const profileOk = ref(true)
+const profileLoaded = ref(false)
+const profileMajors = ref([{ major_code: 'CS', major_name: 'Computer Science' }])
+const profile = ref({ username: '', role: 'faculty', email: '', major_code: 'CS', major_name: 'Computer Science' })
+const profileForm = ref({ email: '', major_code: 'CS', password: '', confirm: '' })
+
 const holdsLoading = ref(true)
 const researchHolds = ref([])
 const busyStudentId = ref('')
+const researchNotes = ref({})
+const researchMsg = ref('')
+const researchOk = ref(true)
 
 // Assignments
 const students = ref([])
@@ -661,6 +777,78 @@ onMounted(() => {
 
 const docUrl = (req) => `${apiBaseURL}/download_document.php?doc_id=${req.doc_id}`
 
+const fetchProfileMajors = async () => {
+  try {
+    const res = await api.get('majors_list.php')
+    if (res.data?.status === 'success' && Array.isArray(res.data.data) && res.data.data.length > 0) profileMajors.value = res.data.data
+  } catch {
+    // keep fallback
+  }
+}
+
+const fetchMyProfile = async () => {
+  const res = await api.get('profile_get.php')
+  if (res.data?.status !== 'success') throw new Error(res.data?.message || 'Failed')
+  const p = res.data.data || {}
+  profile.value = p
+  profileForm.value.email = p.email || ''
+  profileForm.value.major_code = p.major_code || 'CS'
+}
+
+const openProfile = async () => {
+  activeSection.value = 'profile'
+  profileMsg.value = ''
+  profileOk.value = true
+  if (profileLoaded.value) return
+
+  profileLoading.value = true
+  try {
+    await Promise.all([fetchProfileMajors(), fetchMyProfile()])
+    profileLoaded.value = true
+  } catch (e) {
+    profileOk.value = false
+    profileMsg.value = e?.response?.data?.message || e?.message || 'Failed to load profile.'
+  } finally {
+    profileLoading.value = false
+  }
+}
+
+const saveMyProfile = async () => {
+  profileMsg.value = ''
+  profileOk.value = true
+
+  if (profileForm.value.password && profileForm.value.password !== profileForm.value.confirm) {
+    profileOk.value = false
+    profileMsg.value = 'Passwords do not match.'
+    return
+  }
+
+  profileSaving.value = true
+  try {
+    const res = await api.post('profile_update.php', {
+      email: profileForm.value.email,
+      major_code: profileForm.value.major_code,
+      password: profileForm.value.password || '',
+    })
+    if (res.data?.status === 'success') {
+      profileOk.value = true
+      profileMsg.value = res.data?.message || 'Saved.'
+      profileForm.value.password = ''
+      profileForm.value.confirm = ''
+      await fetchMyProfile()
+      profileLoaded.value = true
+    } else {
+      profileOk.value = false
+      profileMsg.value = res.data?.message || 'Save failed.'
+    }
+  } catch (e) {
+    profileOk.value = false
+    profileMsg.value = e?.response?.data?.message || 'Save failed.'
+  } finally {
+    profileSaving.value = false
+  }
+}
+
 
 
 const openBlob = (blob) => {
@@ -696,6 +884,47 @@ const fetchResearchMethodHolds = async () => {
     console.error(e)
   } finally {
     holdsLoading.value = false
+  }
+}
+
+const openResearchProofComments = (h) => {
+  if (!h?.proof_doc_id) return
+  openComments({
+    doc_id: h.proof_doc_id,
+    student_id: h.student_id,
+    student_username: h.student_username,
+    doc_type: 'research_method_proof',
+  })
+}
+
+const reviewResearchProof = async (h, action) => {
+  researchMsg.value = ''
+  researchOk.value = true
+  if (!h?.student_id || !h?.proof_doc_id) return
+
+  busyStudentId.value = String(h.student_id)
+  try {
+    const payload = {
+      student_id: h.student_id,
+      doc_id: h.proof_doc_id,
+      action,
+      comment: String(researchNotes.value?.[h.student_id] || ''),
+    }
+    const res = await api.post('faculty_review_research_method_proof.php', payload)
+    if (res.data?.status === 'success') {
+      researchOk.value = true
+      researchMsg.value = res.data?.message || 'Saved.'
+      researchNotes.value = { ...researchNotes.value, [h.student_id]: '' }
+      await fetchResearchMethodHolds()
+    } else {
+      researchOk.value = false
+      researchMsg.value = res.data?.message || 'Action failed.'
+    }
+  } catch (e) {
+    researchOk.value = false
+    researchMsg.value = e?.response?.data?.message || 'Action failed.'
+  } finally {
+    busyStudentId.value = ''
   }
 }
 
@@ -818,6 +1047,21 @@ const fetchAssignmentOptions = async () => {
   } catch (e) {
     console.error(e)
   }
+}
+
+const studentOptionLabel = (s) => {
+  const first = String(s?.first_name || '').trim()
+  const last = String(s?.last_name || '').trim()
+  const full = `${first} ${last}`.trim()
+  const username = String(s?.username || s?.student_username || '').trim()
+  const termCode = String(s?.entry_term_code || '').trim()
+  const main = full || username || `#${s?.student_id ?? ''}`
+  return termCode ? `${main} · ${termCode}` : main
+}
+
+const myAssnFilters = ref({ course_code: '', student_id: '' })
+const clearMyAssnFilters = () => {
+  myAssnFilters.value = { course_code: '', student_id: '' }
 }
 
 const fetchAllCourses = async () => {
@@ -1055,12 +1299,60 @@ const summarizeTargets = (targets) => {
   const t = targets || []
   if (t.some((x) => x.target_type === 'all')) return 'Target: All students'
   const course = t.find((x) => x.target_type === 'course')?.target_value
-  if (course) return `Target: Course ${course}`
+  if (course) {
+    const name = courseLabel(course)
+    return name ? `Target: Course ${name}` : `Target: Course ${course}`
+  }
   const cohort = t.find((x) => x.target_type === 'cohort')?.target_value
   if (cohort) return `Target: Cohort ${cohort}`
   const n = t.filter((x) => x.target_type === 'student').length
   return `Target: ${n} student(s)`
 }
+
+const courseLabel = (code) => {
+  const c = String(code || '').trim()
+  if (!c) return ''
+  const lists = [assignmentCourses.value || [], allCourses.value || [], teachCourses.value || []]
+  for (const arr of lists) {
+    const row = arr.find((x) => String(x?.course_code || x?.courseCode || '').trim() === c)
+    if (row) {
+      const name = String(row.course_name || row.courseName || '').trim()
+      if (name) return `${c} · ${name}`
+      return c
+    }
+  }
+  return c
+}
+
+const studentLabel = (id) => {
+  const sid = String(id || '').trim()
+  if (!sid) return ''
+  const row = (students.value || []).find((s) => String(s?.student_id || s?.id || '').trim() === sid)
+  if (!row) return sid
+  return studentOptionLabel(row)
+}
+
+const filteredMyAssignments = computed(() => {
+  const course = String(myAssnFilters.value.course_code || '').trim()
+  const student = String(myAssnFilters.value.student_id || '').trim()
+  const rows = assignments.value || []
+  if (!course && !student) return rows
+
+  return rows.filter((a) => {
+    const targets = a.targets || []
+    const courseCode = targets.find((t) => t.target_type === 'course')?.target_value
+    const studentIds = targets
+      .filter((t) => t.target_type === 'student')
+      .map((t) => String(t.target_value || ''))
+      .filter(Boolean)
+    const isAll = targets.some((t) => t.target_type === 'all')
+
+    const courseOk = !course || String(courseCode || '') === course
+    const studentOk = !student || isAll || studentIds.includes(student)
+
+    return courseOk && studentOk
+  })
+})
 
 const openAssignment = async (a) => {
   selectedAssignment.value = a

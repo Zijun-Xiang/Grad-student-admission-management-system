@@ -58,6 +58,13 @@ try {
                     LIMIT 1
                 ) AS proof_status,
                 (
+                    SELECT d.admin_comment
+                    FROM documents d
+                    WHERE d.student_id = h.student_id AND d.doc_type = 'research_method_proof'
+                    ORDER BY d.`$docsDateCol` DESC, d.doc_id DESC
+                    LIMIT 1
+                ) AS proof_comment,
+                (
                     SELECT d.`$docsDateCol`
                     FROM documents d
                     WHERE d.student_id = h.student_id AND d.doc_type = 'research_method_proof'

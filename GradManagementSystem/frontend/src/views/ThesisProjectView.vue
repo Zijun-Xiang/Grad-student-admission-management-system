@@ -16,6 +16,7 @@
             <li @click="router.push('/my-courses')">My Courses</li>
             <li @click="router.push('/documents')">Documents</li>
             <li @click="router.push('/assignments')">Assignments</li>
+            <li @click="router.push('/profile')">Profile</li>
             <li v-if="term?.unlocks?.term2" @click="router.push('/major-professor')">Major Professor</li>
             <li class="active">Thesis / Project</li>
           </ul>

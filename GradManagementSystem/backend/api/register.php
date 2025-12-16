@@ -3,6 +3,7 @@ require_once __DIR__ . '/../bootstrap.php';
 require_method('POST');
 
 include_once '../db.php';
+require_once __DIR__ . '/majors_common.php';
 
 $data = get_json_input();
 $username = trim((string)($data['username'] ?? ''));
@@ -13,6 +14,7 @@ $firstName = trim((string)($data['first_name'] ?? ''));
 $lastName = trim((string)($data['last_name'] ?? ''));
 $entryTermCode = trim((string)($data['term_code'] ?? ''));
 $entryDate = trim((string)($data['entry_date'] ?? ''));
+$majorCode = normalize_major_code(isset($data['major_code']) ? (string)$data['major_code'] : '');
 
 if ($username === '' || $password === '' || $role === '') {
     send_json(['status' => 'error', 'message' => 'Missing username/password/role.'], 400);
@@ -50,9 +52,11 @@ function ensure_user_profiles_table(PDO $pdo): void
             user_id BIGINT UNSIGNED NOT NULL,
             entry_date DATE NULL,
             entry_term_code VARCHAR(32) NULL,
+            major_code VARCHAR(16) NULL,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (user_id),
-            KEY idx_user_profiles_term (entry_term_code)
+            KEY idx_user_profiles_term (entry_term_code),
+            KEY idx_user_profiles_major (major_code)
         )"
     );
 }
@@ -110,9 +114,16 @@ try {
     // Ensure auxiliary tables exist BEFORE starting any transaction.
     // MySQL will implicitly commit when running DDL (e.g., CREATE TABLE), which would break our transaction.
     try {
-        ensure_user_profiles_table($pdo);
+        ensure_majors_schema($pdo);
     } catch (Exception $e) {
         // ignore
+    }
+
+    if ($majorCode === '') {
+        send_json(['status' => 'error', 'message' => 'Missing major/program.'], 400);
+    }
+    if (!major_code_exists($pdo, $majorCode)) {
+        send_json(['status' => 'error', 'message' => 'Invalid major.'], 400);
     }
 
     $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = :u LIMIT 1');
@@ -175,15 +186,20 @@ try {
     try {
         $termCodeForProfile = $entryTermCode !== '' ? $entryTermCode : (term_code_from_date($entryDate) ?: (getenv('DEFAULT_TERM_CODE') ?: guess_term_code()));
         $dateForProfile = $entryDate !== '' ? $entryDate : null;
+        $majorForProfile = $majorCode;
 
         $stmtProf = $pdo->prepare(
-            "INSERT INTO user_profiles (user_id, entry_date, entry_term_code)
-             VALUES (:uid, :ed, :tc)
-             ON DUPLICATE KEY UPDATE entry_date = VALUES(entry_date), entry_term_code = VALUES(entry_term_code)"
+            "INSERT INTO user_profiles (user_id, entry_date, entry_term_code, major_code)
+             VALUES (:uid, :ed, :tc, :mc)
+             ON DUPLICATE KEY UPDATE
+                entry_date = VALUES(entry_date),
+                entry_term_code = VALUES(entry_term_code),
+                major_code = VALUES(major_code)"
         );
         $stmtProf->bindParam(':uid', $userId);
         $stmtProf->bindValue(':ed', $dateForProfile, $dateForProfile === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $stmtProf->bindParam(':tc', $termCodeForProfile);
+        $stmtProf->bindParam(':mc', $majorForProfile);
         $stmtProf->execute();
     } catch (Exception $e) {
         // ignore

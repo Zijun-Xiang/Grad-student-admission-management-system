@@ -4,6 +4,7 @@ require_login(['student']);
 require_method('POST');
 
 include_once '../db.php';
+require_once __DIR__ . '/majors_common.php';
 
 $user = current_user();
 $studentId = (string)($user['id'] ?? '');
@@ -77,6 +78,7 @@ try {
     $cols = core_course_columns($pdo);
     $hasLevel = has_core_col($cols, 'level');
     $hasRequired = has_core_col($cols, 'is_required');
+    $hasMajor = has_core_col($cols, 'major_code');
 
     if (!$hasLevel || !$hasRequired) {
         send_json([
@@ -88,10 +90,15 @@ try {
     $where = [];
     if ($hasLevel) $where[] = "level = 'UG'";
     if ($hasRequired) $where[] = "is_required = 1";
+    if ($hasMajor) $where[] = "major_code = :m";
 
     $sql = "SELECT course_code FROM core_courses";
     if (!empty($where)) $sql .= " WHERE " . implode(' AND ', $where);
     $stmt = $pdo->prepare($sql);
+    if ($hasMajor) {
+        $majorCode = get_user_major_code($pdo, $studentId);
+        $stmt->bindParam(':m', $majorCode);
+    }
     $stmt->execute();
     $required = array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN));
 

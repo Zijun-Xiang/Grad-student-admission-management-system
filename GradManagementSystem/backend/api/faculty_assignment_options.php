@@ -11,6 +11,29 @@ if (!assignments_tables_ready($pdo)) {
 
 $facultyId = (string)(current_user()['id'] ?? '');
 
+function table_exists(PDO $pdo, string $table): bool
+{
+    try {
+        $stmt = $pdo->prepare("SHOW TABLES LIKE :t");
+        $stmt->bindParam(':t', $table);
+        $stmt->execute();
+        return (bool)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+function table_columns(PDO $pdo, string $table): array
+{
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM `$table`");
+        $cols = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_map(fn ($c) => (string)($c['Field'] ?? ''), $cols);
+    } catch (Exception $e) {
+        return [];
+    }
+}
+
 try {
     ensure_user_profiles_table_for_assignments($pdo);
 
@@ -40,14 +63,26 @@ try {
     }
 
     // Students list
+    $sdExists = table_exists($pdo, 'student_details');
+    $sdCols = $sdExists ? table_columns($pdo, 'student_details') : [];
+    $selectSd = '';
+    $joinSd = '';
+    if ($sdExists) {
+        $joinSd = "LEFT JOIN student_details sd ON sd.student_id = u.user_id";
+        if (in_array('first_name', $sdCols, true)) $selectSd .= ", sd.first_name";
+        if (in_array('last_name', $sdCols, true)) $selectSd .= ", sd.last_name";
+    }
+
     $stmtS = $pdo->query(
         "SELECT u.user_id AS student_id,
                 u.username,
                 u.email,
                 up.entry_term_code AS entry_term_code,
                 up.entry_date
+                $selectSd
          FROM users u
          LEFT JOIN user_profiles up ON up.user_id = u.user_id
+         $joinSd
          WHERE u.role = 'student'
          ORDER BY u.username ASC, u.user_id ASC"
     );

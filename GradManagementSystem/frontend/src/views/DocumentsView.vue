@@ -16,6 +16,7 @@
             <li @click="router.push('/my-courses')">My Courses</li>
             <li class="active">Documents</li>
             <li @click="router.push('/assignments')">Assignments</li>
+            <li @click="router.push('/profile')">Profile</li>
             <li v-if="term?.unlocks?.term2" @click="router.push('/major-professor')">Major Professor</li>
             <li v-if="term?.unlocks?.term3" @click="router.push('/thesis-project')">Thesis / Project</li>
           </ul>
@@ -108,7 +109,7 @@
                   <span class="doc-status-pill" :class="statusPillClass(d.status)">{{ statusLabel(d.status) }}</span>
                   <span v-if="d.upload_date" class="meta">· {{ d.upload_date }}</span>
                 </div>
-                <div v-if="d.admin_comment" class="comment">Admin comment: {{ d.admin_comment }}</div>
+                <div v-if="d.admin_comment" class="comment">Reviewer comment: {{ d.admin_comment }}</div>
               </div>
               <div class="actions">
                 <button class="btn-secondary" @click="openDoc(d)">View</button>

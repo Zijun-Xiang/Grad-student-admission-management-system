@@ -3,6 +3,7 @@ require_once __DIR__ . '/../bootstrap.php';
 require_method('POST');
 
 include_once '../db.php';
+require_once __DIR__ . '/majors_common.php';
 
 $user = require_login();
 if (($user['role'] ?? '') === 'faculty') {
@@ -21,6 +22,24 @@ $minCredits = (int)(getenv('TERM_MIN_CREDITS') ?: 12);
 $maxCredits = (int)(getenv('TERM_MAX_CREDITS') ?: 20);
 
 try {
+    // Enforce major-based course visibility (best-effort).
+    try {
+        ensure_majors_schema($pdo);
+        $studentMajor = get_user_major_code($pdo, $studentId);
+        $hasMajor = majors_has_column($pdo, 'core_courses', 'major_code');
+        if ($hasMajor) {
+            $stmtM = $pdo->prepare("SELECT 1 FROM core_courses WHERE course_code = :code AND major_code = :m LIMIT 1");
+            $stmtM->bindParam(':code', $courseCode);
+            $stmtM->bindParam(':m', $studentMajor);
+            $stmtM->execute();
+            if (!$stmtM->fetchColumn()) {
+                send_json(['status' => 'error', 'message' => 'Course is not available for your major.'], 403);
+            }
+        }
+    } catch (Exception $e) {
+        // ignore
+    }
+
     // Holds gating:
     // - In general, any active hold blocks registration.
     // - Exception: if the ONLY active hold(s) are "research_method" and the student is registering for the Research Method course,

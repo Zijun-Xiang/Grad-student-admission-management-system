@@ -3,20 +3,12 @@ require_once __DIR__ . '/../bootstrap.php';
 require_login(['admin']);
 
 include_once '../db.php';
+require_once __DIR__ . '/majors_common.php';
 
 try {
     // Ensure profile table exists (dev-friendly)
     try {
-        $pdo->exec(
-            "CREATE TABLE IF NOT EXISTS user_profiles (
-                user_id BIGINT UNSIGNED NOT NULL,
-                entry_date DATE NULL,
-                entry_term_code VARCHAR(32) NULL,
-                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (user_id),
-                KEY idx_user_profiles_term (entry_term_code)
-            )"
-        );
+        ensure_majors_schema($pdo);
     } catch (Exception $e) {
         // ignore
     }
@@ -35,13 +27,21 @@ try {
     }
 
     $sql = $hasEmail
-        ? "SELECT u.user_id, u.username, u.role, u.email, p.entry_date, p.entry_term_code
+        ? "SELECT u.user_id, u.username, u.role, u.email,
+                  p.entry_date, p.entry_term_code,
+                  COALESCE(p.major_code, '" . majors_default_code() . "') AS major_code,
+                  m.major_name
            FROM users u
            LEFT JOIN user_profiles p ON p.user_id = u.user_id
+           LEFT JOIN majors m ON m.major_code = COALESCE(p.major_code, '" . majors_default_code() . "')
            ORDER BY u.role ASC, u.username ASC"
-        : "SELECT u.user_id, u.username, u.role, NULL AS email, p.entry_date, p.entry_term_code
+        : "SELECT u.user_id, u.username, u.role, NULL AS email,
+                  p.entry_date, p.entry_term_code,
+                  COALESCE(p.major_code, '" . majors_default_code() . "') AS major_code,
+                  m.major_name
            FROM users u
            LEFT JOIN user_profiles p ON p.user_id = u.user_id
+           LEFT JOIN majors m ON m.major_code = COALESCE(p.major_code, '" . majors_default_code() . "')
            ORDER BY u.role ASC, u.username ASC";
 
     $stmt = $pdo->prepare($sql);

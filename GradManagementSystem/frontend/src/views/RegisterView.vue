@@ -15,6 +15,15 @@
           </select>
         </div>
 
+        <div class="form-group">
+          <label>Major / Program</label>
+          <select v-model="majorCode" required>
+            <option v-for="m in majors" :key="m.major_code" :value="m.major_code">
+              {{ m.major_name }}
+            </option>
+          </select>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Entry Year</label>
@@ -83,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
 
@@ -100,6 +109,8 @@ const username = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const majors = ref([{ major_code: 'CS', major_name: 'Computer Science' }])
+const majorCode = ref('CS')
 
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -146,6 +157,22 @@ const syncDateToYearAndTerm = () => {
 watch(entryYear, syncYearToDate)
 watch(entryDate, syncDateToYearAndTerm)
 
+const fetchMajors = async () => {
+  try {
+    const res = await api.get('majors_list.php')
+    if (res.data?.status === 'success' && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      majors.value = res.data.data
+      if (!majors.value.some((m) => m.major_code === majorCode.value)) {
+        majorCode.value = majors.value[0].major_code
+      }
+    }
+  } catch {
+    // keep fallback
+  }
+}
+
+onMounted(fetchMajors)
+
 const handleRegister = async () => {
   errorMessage.value = ''
   successMessage.value = ''
@@ -165,6 +192,7 @@ const handleRegister = async () => {
       last_name: lastName.value,
       term_code: termCode.value,
       entry_date: entryDate.value,
+      major_code: majorCode.value,
     }
 
     const res = await api.post('register.php', payload)

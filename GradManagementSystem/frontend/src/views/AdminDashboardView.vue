@@ -172,6 +172,14 @@
 	                  <option value="faculty">Faculty</option>
 	                </select>
 	              </div>
+                <div class="form-group">
+                  <label>Major / Program</label>
+                  <select v-model="newUser.major_code">
+                    <option v-for="m in majors" :key="m.major_code" :value="m.major_code">
+                      {{ m.major_name }}
+                    </option>
+                  </select>
+                </div>
 	              <div class="form-group">
 	                <label>Entry Date</label>
 	                <input v-model="newUser.entry_date" type="date" />
@@ -217,6 +225,7 @@
 	            <div class="row header users-header">
 	              <div>Username</div>
 	              <div>Role</div>
+	              <div>Major</div>
 	              <div>Email</div>
 	              <div>Entry Date</div>
 	              <div>Entry Term</div>
@@ -225,6 +234,7 @@
 	            <div v-for="u in users" :key="u.user_id" class="row users-row">
 	              <div>{{ u.username }}</div>
 	              <div>{{ u.role }}</div>
+	              <div>{{ u.major_name || u.major_code || 'CS' }}</div>
 	              <div>{{ u.email || '-' }}</div>
 	              <div>{{ u.entry_date || '-' }}</div>
 	              <div>{{ u.entry_term_code || '-' }}</div>
@@ -254,6 +264,14 @@
 	          <label>Role</label>
 	          <input :value="editUser.role" disabled />
 	        </div>
+          <div class="form-group">
+            <label>Major / Program</label>
+            <select v-model="editUser.major_code">
+              <option v-for="m in majors" :key="m.major_code" :value="m.major_code">
+                {{ m.major_name }}
+              </option>
+            </select>
+          </div>
 	        <div class="form-group">
 	          <label>Username</label>
 	          <input v-model="editUser.username" />
@@ -281,7 +299,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { apiBaseURL } from '../api/client'
 import { docTypeLabel, fileFormatLabel, statusLabel, statusPillClass } from '../utils/docDisplay'
@@ -297,8 +315,10 @@ const error = ref('')
 
 const usersLoading = ref(false)
 const users = ref([])
+const majors = ref([{ major_code: 'CS', major_name: 'Computer Science' }])
 const newUser = ref({
   role: 'student',
+  major_code: 'CS',
   entry_date: '',
   username: '',
   password: '',
@@ -317,7 +337,7 @@ const editMsgType = ref('') // ok | err
 const defenseLoading = ref(false)
 const defenseBusy = ref(false)
 const defenseWindows = ref([])
-const defenseForm = ref({ year: String(new Date().getFullYear()), start_date: '', end_date: '' })
+const defenseForm = reactive({ year: String(new Date().getFullYear()), start_date: '', end_date: '' })
 const defenseMsg = ref('')
 const defenseOk = ref(true)
 
@@ -381,7 +401,9 @@ const fetchDefenseWindows = async () => {
 }
 
 const prefillDefenseWindow = (w) => {
-  defenseForm.value = { year: String(w.year), start_date: w.start_date, end_date: w.end_date }
+  defenseForm.year = String(w.year)
+  defenseForm.start_date = w.start_date
+  defenseForm.end_date = w.end_date
   defenseMsg.value = ''
 }
 
@@ -391,9 +413,9 @@ const saveDefenseWindow = async () => {
   defenseBusy.value = true
   try {
     const payload = {
-      year: Number(defenseForm.value.year),
-      start_date: defenseForm.value.start_date,
-      end_date: defenseForm.value.end_date,
+      year: Number(defenseForm.year),
+      start_date: defenseForm.start_date,
+      end_date: defenseForm.end_date,
     }
     const res = await api.post('admin_defense_windows_upsert.php', payload)
     if (res.data?.status === 'success') {
@@ -492,6 +514,20 @@ const refreshUsers = async () => {
   }
 }
 
+const fetchMajors = async () => {
+  try {
+    const res = await api.get('majors_list.php')
+    if (res.data?.status === 'success' && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      majors.value = res.data.data
+      if (!majors.value.some((m) => m.major_code === newUser.value.major_code)) {
+        newUser.value.major_code = majors.value[0].major_code
+      }
+    }
+  } catch {
+    // keep fallback
+  }
+}
+
 const createUser = async () => {
   if (!newUser.value.username || !newUser.value.password) {
     return alert('Username and password are required.')
@@ -512,6 +548,9 @@ const createUser = async () => {
       newUser.value.email = ''
       newUser.value.first_name = ''
       newUser.value.last_name = ''
+      if (!majors.value.some((m) => m.major_code === newUser.value.major_code)) {
+        newUser.value.major_code = majors.value?.[0]?.major_code || 'CS'
+      }
       newUser.value.term_code = termCodeFromDate(newUser.value.entry_date)
       await refreshUsers()
       await fetchDashboard()
@@ -556,6 +595,7 @@ const openEdit = (u) => {
     email: u.email || '',
     entry_date: u.entry_date || '',
     entry_term_code: u.entry_term_code || (u.entry_date ? termCodeFromDate(u.entry_date) : ''),
+    major_code: u.major_code || 'CS',
   }
   showEditModal.value = true
 }
@@ -587,6 +627,7 @@ const saveEdit = async () => {
       email: editUser.value.email,
       entry_date: editUser.value.entry_date,
       entry_term_code: editUser.value.entry_term_code,
+      major_code: editUser.value.major_code,
     }
     const res = await api.post('admin_users_update.php', payload)
     if (res.data?.status === 'success') {
@@ -661,7 +702,7 @@ const logout = async () => {
 }
 
 const refreshAll = async () => {
-  await Promise.all([fetchDashboard(), refreshUsers(), fetchDefenseWindows(), fetchThesisSchedules()])
+  await Promise.all([fetchDashboard(), refreshUsers(), fetchDefenseWindows(), fetchThesisSchedules(), fetchMajors()])
 }
 
 onMounted(() => {
@@ -906,7 +947,7 @@ onMounted(() => {
 }
 .users-header,
 .users-row {
-  grid-template-columns: 2fr 0.8fr 2fr 1.2fr 1fr 1fr;
+  grid-template-columns: 2fr 0.8fr 1.4fr 2fr 1.2fr 1fr 1fr;
 }
 
 .edit-grid {

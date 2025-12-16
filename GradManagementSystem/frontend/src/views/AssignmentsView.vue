@@ -16,6 +16,7 @@
             <li @click="router.push('/my-courses')">My Courses</li>
             <li @click="router.push('/documents')">Documents</li>
             <li class="active">Assignments</li>
+            <li @click="router.push('/profile')">Profile</li>
             <li v-if="termInfo.termNumber >= 2" @click="router.push('/major-professor')">Major Professor</li>
             <li v-if="termInfo.termNumber >= 3" @click="router.push('/thesis-project')">Thesis / Project</li>
           </ul>
@@ -31,7 +32,20 @@
           <div v-else-if="assignments.length === 0" class="empty-state">No assignments.</div>
 
           <div v-else class="assignment-list">
-            <div v-for="a in assignments" :key="a.id" class="assignment-item">
+            <div class="filter-row">
+              <select v-model="filters.course_code" class="filter-control">
+                <option value="">All courses</option>
+                <option v-for="c in registeredCourses" :key="c.course_code" :value="c.course_code">
+                  {{ c.course_name ? `${c.course_name} (${c.course_code})` : c.course_code }}
+                </option>
+              </select>
+              <input v-model="filters.faculty" class="filter-control" type="text" placeholder="Search by faculty name (username)..." />
+              <button class="btn-secondary" @click="clearFilters" :disabled="!filters.course_code && !filters.faculty">Clear</button>
+            </div>
+
+            <div v-if="filteredAssignments.length === 0" class="empty-state">No assignments match your filters.</div>
+
+            <div v-for="a in filteredAssignments" :key="a.id" class="assignment-item">
               <div class="head">
                 <div class="title">
                   <strong>{{ a.title }}</strong>
@@ -40,6 +54,8 @@
                   <span class="badge ok" v-if="a.submission_id && a.grade !== null && a.grade !== undefined">Grade: {{ a.grade }}</span>
                 </div>
                 <div class="meta text-muted">
+                  <span v-if="a.course_name || a.course_code">Course: {{ a.course_name || a.course_code }}</span>
+                  <span v-if="a.course_name || a.course_code"> · </span>
                   From: {{ a.faculty_username || 'Faculty' }}
                   <span v-if="a.due_at">· Due: {{ a.due_at }}</span>
                 </div>
@@ -119,6 +135,8 @@ const assignments = ref([])
 const error = ref('')
 const busyId = ref(0)
 const pickedFiles = ref({})
+const registeredCourses = ref([])
+const filters = ref({ course_code: '', faculty: '' })
 
 const showComments = ref(false)
 const activeAssignment = ref(null)
@@ -142,6 +160,11 @@ onMounted(async () => {
     if (s.data?.status === 'success') term.value = s.data.term || null
   } catch {}
 
+  try {
+    const c = await api.get('get_student_courses.php')
+    if (c.data?.status === 'success') registeredCourses.value = c.data.data || []
+  } catch {}
+
   await fetchAssignments()
 })
 
@@ -157,6 +180,27 @@ const fetchAssignments = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const filteredAssignments = computed(() => {
+  const course = String(filters.value.course_code || '').trim()
+  const faculty = String(filters.value.faculty || '').trim().toLowerCase()
+  const rows = assignments.value || []
+
+  return rows.filter((a) => {
+    if (course && String(a.course_code || '') !== course) return false
+    if (faculty) {
+      const hay = [a.faculty_username, a.title, a.course_name, a.course_code]
+        .map((x) => String(x || '').toLowerCase())
+        .join(' ')
+      if (!hay.includes(faculty)) return false
+    }
+    return true
+  })
+})
+
+const clearFilters = () => {
+  filters.value = { course_code: '', faculty: '' }
 }
 
 const onPickFile = (assignmentId, e) => {
@@ -304,6 +348,19 @@ h2 {
   border-bottom: 2px solid #f1f3f5;
   padding-bottom: 15px;
   margin-bottom: 20px;
+}
+.filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 10px 0 16px;
+}
+.filter-control {
+  min-width: 260px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
 }
 .assignment-item {
   border: 1px solid #eee;

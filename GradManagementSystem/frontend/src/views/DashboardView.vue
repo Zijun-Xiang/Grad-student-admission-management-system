@@ -16,6 +16,7 @@
 	            <li @click="router.push('/my-courses')">My Courses</li>
 	            <li @click="router.push('/documents')">Documents</li>
 	            <li @click="router.push('/assignments')">Assignments</li>
+              <li @click="router.push('/profile')">Profile</li>
 	            <li v-if="termInfo.termNumber >= 2" @click="router.push('/major-professor')">Major Professor</li>
             <li v-if="termInfo.termNumber >= 3" @click="router.push('/thesis-project')">Thesis / Project</li>
 	          </ul>
@@ -28,7 +29,13 @@
 
           <div v-if="isLoadingData" class="loading-text">Loading status...</div>
 
-	          <div v-else class="status-grid">
+	          <div v-else>
+              <div class="major-banner">
+                <span class="major-label">Major / Program</span>
+                <span class="major-pill">{{ majorDisplay }}</span>
+              </div>
+
+              <div class="status-grid">
 	            <div class="left-panel">
 	              <div class="status-item">
 	                <h3>Academic Calendar</h3>
@@ -42,6 +49,21 @@
 	                </div>
 	                <MiniCalendar :entry-date="termInfo.entryDate" />
 	              </div>
+
+                <div class="status-item">
+                  <h3>Graduation Progress</h3>
+                  <div class="progress-wrap">
+                    <div class="progress-ring" :style="ringStyle">
+                      <div class="progress-inner">
+                        <div class="progress-pct">{{ graduationPercent }}%</div>
+                        <div class="progress-sub">Term {{ Math.min(termInfo.termNumber, graduationTotalTerms) }} / {{ graduationTotalTerms }}</div>
+                      </div>
+                    </div>
+                    <div class="text-muted">
+                      Based on your current term in the program (Term 1 → Term {{ graduationTotalTerms }}).
+                    </div>
+                  </div>
+                </div>
 
 	              <div class="status-item">
 	                <h3>Current Holds</h3>
@@ -65,42 +87,73 @@
               </div>
 	            </div>
 
-	            <div class="status-item upload-section">
-	              <h3>Documents Status</h3>
-	              <div class="doc-status">
-	                <div class="doc-row">
-	                  <div class="doc-left">
-	                    <div class="doc-title">Admission Letter</div>
-	                    <div class="doc-sub">Required for Term 1 hold release</div>
-	                  </div>
-	                  <div class="doc-right">
-	                    <span class="badge" :class="admissionStatus">{{ admissionStatus }}</span>
-	                  </div>
-	                </div>
-	                <div v-if="admissionStatus === 'rejected' && admissionComment" class="doc-comment">
-	                  Admin comment: {{ admissionComment }}
-	                </div>
+              <div class="right-panel">
+                <div class="status-item upload-section">
+                  <h3>Documents Status</h3>
+                  <div class="doc-status">
+                    <div class="doc-row">
+                      <div class="doc-left">
+                        <div class="doc-title">Admission Letter</div>
+                        <div class="doc-sub">Required for Term 1 hold release</div>
+                      </div>
+                      <div class="doc-right">
+                        <span class="badge" :class="admissionStatus">{{ admissionStatus }}</span>
+                      </div>
+                    </div>
+                    <div v-if="admissionStatus === 'rejected' && admissionComment" class="doc-comment">
+                      Reviewer comment: {{ admissionComment }}
+                    </div>
 
-	                <div class="doc-row">
-	                  <div class="doc-left">
-	                    <div class="doc-title">Major Professor Form</div>
-	                    <div class="doc-sub">Required for Term 2 hold release</div>
-	                  </div>
-	                  <div class="doc-right">
-	                    <span class="badge" :class="mpFormStatus">{{ mpFormStatus }}</span>
-	                  </div>
-	                </div>
-	                <div v-if="mpFormStatus === 'rejected' && mpFormComment" class="doc-comment">
-	                  Admin comment: {{ mpFormComment }}
-	                </div>
-	              </div>
+                    <div class="doc-row">
+                      <div class="doc-left">
+                        <div class="doc-title">Major Professor Form</div>
+                        <div class="doc-sub">Required for Term 2 hold release</div>
+                      </div>
+                      <div class="doc-right">
+                        <span class="badge" :class="mpFormStatus">{{ mpFormStatus }}</span>
+                      </div>
+                    </div>
+                    <div v-if="mpFormStatus === 'rejected' && mpFormComment" class="doc-comment">
+                      Reviewer comment: {{ mpFormComment }}
+                    </div>
+                  </div>
 
-	              <button class="btn-primary" @click="router.push('/documents')">Go to Documents</button>
-	              <p class="text-muted" style="margin-top: 10px">
-	                Uploads are handled in Documents. Dashboard only shows status.
-	              </p>
-	            </div>
+                  <button class="btn-primary" @click="router.push('/documents')">Go to Documents</button>
+                  <p class="text-muted" style="margin-top: 10px">
+                    Uploads are handled in Documents. Dashboard only shows status.
+                  </p>
+                </div>
+
+                <div class="status-item events-section">
+                  <div class="events-head">
+                    <h3 style="margin: 0">Events</h3>
+                    <button class="btn-secondary" @click="fetchEvents" :disabled="eventsLoading">Refresh</button>
+                  </div>
+                  <div v-if="eventsMsg" class="msg" :class="{ ok: eventsOk, bad: !eventsOk }">{{ eventsMsg }}</div>
+                  <div v-if="eventsLoading" class="loading-text">Loading events...</div>
+                  <div v-else-if="events.length === 0" class="text-muted">No new events.</div>
+                  <div v-else class="events-list">
+                    <label v-for="ev in events" :key="ev.id" class="event-item">
+                      <input
+                        type="checkbox"
+                        :disabled="eventsBusyId === String(ev.id)"
+                        @change="(e) => dismissEvent(ev, e)"
+                      />
+                      <div class="event-body">
+                        <div class="event-title">{{ ev.title }}</div>
+                        <div class="event-meta text-muted">
+                          <span v-if="ev.course_name || ev.course_code">Course: {{ ev.course_name || ev.course_code }} · </span>
+                          From: {{ ev.faculty_username || 'Faculty' }} · {{ ev.created_at }}
+                          <span v-if="ev.due_at"> · Due: {{ ev.due_at }}</span>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                  <button class="btn-primary" style="margin-top: 12px" @click="router.push('/assignments')">Go to Assignments</button>
+                </div>
+              </div>
 	          </div>
+            </div>
 	        </div>
 	      </main>
 	    </div>
@@ -122,11 +175,25 @@ const profile = ref(null)
 const term = ref(null)
 const isLoadingData = ref(true)
 
+const events = ref([])
+const eventsLoading = ref(false)
+const eventsMsg = ref('')
+const eventsOk = ref(true)
+const eventsBusyId = ref('')
+
 const docByType = (type) => documents.value.find((d) => d.doc_type === type) || null
 const admissionStatus = computed(() => docByType('admission_letter')?.status || 'none')
 const admissionComment = computed(() => docByType('admission_letter')?.admin_comment || '')
 const mpFormStatus = computed(() => docByType('major_professor_form')?.status || 'none')
 const mpFormComment = computed(() => docByType('major_professor_form')?.admin_comment || '')
+
+const majorDisplay = computed(() => {
+  const name = String(profile.value?.major_name || '').trim()
+  if (name) return name
+  const code = String(profile.value?.major_code || '').trim()
+  if (code === 'CS') return 'Computer Science'
+  return code || 'Not set'
+})
 
 const termCodeFromDate = (dateStr) => {
   const d = new Date(dateStr + 'T00:00:00')
@@ -164,11 +231,26 @@ const termInfo = computed(() => {
   return { entryDate, entryTerm: entryTerm || 'Unknown', currentTerm, termNumber }
 })
 
-onMounted(() => {
+const graduationTotalTerms = 4
+const graduationPercent = computed(() => {
+  const n = Number(termInfo.value?.termNumber || 1)
+  const capped = Math.max(1, Math.min(graduationTotalTerms, n))
+  return Math.round((capped / graduationTotalTerms) * 100)
+})
+
+const ringStyle = computed(() => {
+  const pct = graduationPercent.value
+  return {
+    background: `conic-gradient(#16a34a ${pct}%, #e5e7eb 0)`,
+  }
+})
+
+onMounted(async () => {
   const storedUser = localStorage.getItem('user')
   if (storedUser) {
     user.value = JSON.parse(storedUser)
-    fetchStatus()
+    await fetchStatus()
+    await fetchEvents()
   } else {
     router.push('/')
   }
@@ -188,6 +270,50 @@ const fetchStatus = async () => {
     console.error(error)
   } finally {
     isLoadingData.value = false
+  }
+}
+
+const fetchEvents = async () => {
+  eventsLoading.value = true
+  eventsMsg.value = ''
+  eventsOk.value = true
+  try {
+    const res = await api.get('student_list_events.php')
+    if (res.data?.status === 'success') {
+      events.value = res.data.data || []
+    } else {
+      eventsOk.value = false
+      eventsMsg.value = res.data?.message || 'Failed to load events.'
+    }
+  } catch (e) {
+    eventsOk.value = false
+    eventsMsg.value = e?.response?.data?.message || 'Failed to load events.'
+  } finally {
+    eventsLoading.value = false
+  }
+}
+
+const dismissEvent = async (ev, e) => {
+  const checked = Boolean(e?.target?.checked)
+  if (!checked) return
+  eventsBusyId.value = String(ev?.id || '')
+  eventsMsg.value = ''
+  eventsOk.value = true
+  try {
+    const res = await api.post('student_mark_assignment_read.php', { assignment_id: ev.id })
+    if (res.data?.status === 'success') {
+      events.value = (events.value || []).filter((x) => x.id !== ev.id)
+    } else {
+      eventsOk.value = false
+      eventsMsg.value = res.data?.message || 'Failed.'
+      if (e?.target) e.target.checked = false
+    }
+  } catch (err) {
+    eventsOk.value = false
+    eventsMsg.value = err?.response?.data?.message || 'Failed.'
+    if (e?.target) e.target.checked = false
+  } finally {
+    eventsBusyId.value = ''
   }
 }
 
@@ -260,6 +386,75 @@ const logout = async () => {
   max-width: 900px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+
+.major-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 0 0 18px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(90deg, #eff6ff, #f0fdf4);
+}
+.major-label {
+  font-weight: 800;
+  color: #0f172a;
+}
+.major-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #003366;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  box-shadow: 0 10px 20px rgba(0, 51, 102, 0.18);
+}
+
+.progress-wrap {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.progress-ring {
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-inner {
+  width: 112px;
+  height: 112px;
+  border-radius: 999px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #eef2f7;
+}
+
+.progress-pct {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.progress-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
 h2 {
   color: #003366;
   border-bottom: 2px solid #f1f3f5;
@@ -273,6 +468,11 @@ h2 {
   gap: 30px;
 }
 .left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.right-panel {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -369,6 +569,34 @@ h2 {
 .btn-primary:disabled {
   background-color: #ccc;
 }
+.btn-secondary {
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.msg {
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-weight: 700;
+}
+.msg.ok {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+.msg.bad {
+  background: #fff1f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
 .doc-status {
   display: flex;
   flex-direction: column;
@@ -426,5 +654,43 @@ h2 {
   color: #374151;
   font-size: 13px;
   margin: -6px 0 6px;
+}
+.events-section {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 20px;
+}
+.events-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+.event-item {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.event-title {
+  font-weight: 800;
+  color: #0f172a;
+}
+.event-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
 }
 </style>

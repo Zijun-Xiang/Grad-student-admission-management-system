@@ -26,6 +26,21 @@ try {
                 a.attachment_path,
                 a.created_at,
                 u.username AS faculty_username,
+                (
+                    SELECT t.target_value
+                    FROM assignment_targets t
+                    WHERE t.assignment_id = a.id AND t.target_type = 'course'
+                    ORDER BY t.id ASC
+                    LIMIT 1
+                ) AS course_code,
+                (
+                    SELECT cc.course_name
+                    FROM assignment_targets t
+                    JOIN core_courses cc ON cc.course_code = t.target_value
+                    WHERE t.assignment_id = a.id AND t.target_type = 'course'
+                    ORDER BY t.id ASC
+                    LIMIT 1
+                ) AS course_name,
                 s.id AS submission_id,
                 s.file_path AS submission_file_path,
                 s.submitted_at,
