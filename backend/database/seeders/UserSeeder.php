@@ -19,7 +19,7 @@ class UserSeeder extends Seeder
             'first_name' => 'Admin',
             'last_name' => 'User',
             'email' => 'admin@gradtrack.com',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('123123'),
             'role' => 'admin',
             'department' => null,
         ]);

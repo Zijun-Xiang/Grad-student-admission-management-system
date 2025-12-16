@@ -124,9 +124,18 @@ const Settings = () => {
   if (userLoading) {
     return (
       <Layout>
-        <main className="settings-container">
-          <div className="loading-message">Loading...</div>
-        </main>
+        <div className="page-shell settings-page">
+          <div className="page-grid wide">
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Settings</span>
+              </div>
+              <div className="card-body">
+                <div className="muted">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </Layout>
     );
   }
@@ -138,158 +147,163 @@ const Settings = () => {
 
   return (
     <Layout>
-      <main className="settings-container">
-        <h2>Settings</h2>
-
-        {successMessage && (
-          <div className="message success-message">
-            {successMessage}
-          </div>
-        )}
-
-        {errorMessage && (
-          <div className="message error-message">
-            {errorMessage}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <section className="settings-section">
-            <h3>Profile Information</h3>
-            <label>
-              First Name:
-              <input
-                type="text"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </label>
-            <label>
-              Last Name:
-              <input
-                type="text"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </label>
-            <label>
-              Email:
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </label>
-            <label>
-              Department:
-              <input
-                type="text"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                disabled={loading}
-                placeholder="Optional"
-              />
-            </label>
-            <label>
-              Role:
-              <input
-                type="text"
-                value={user.role || 'N/A'}
-                disabled
-                className="disabled-input"
-              />
-            </label>
-          </section>
-
-          <section className="settings-section">
-          <h3>Preferences</h3>
-          <label>
-            Notification Emails:
-            <select>
-              <option>Enabled</option>
-              <option>Disabled</option>
-            </select>
-          </label>
-          <label>
-            Dashboard Theme:
-            <select>
-              <option>Soft Academic</option>
-              <option>Dark Mode</option>
-              <option>Minimal</option>
-            </select>
-          </label>
-        </section>
-          <section className="settings-section">
-            
-            <h3>Change Password</h3>
-            <p className="section-description">
-              Leave blank if you don't want to change your password
-            </p>
-            <label>
-              New Password:
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </label>
-            <label>
-              Confirm New Password:
-              <input
-                type="password"
-                name="password_confirmation"
-                value={formData.password_confirmation}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </label>
-          </section>
-
-          <section className="settings-section">
-            <div className="form-actions">
-              <button 
-                type="submit" 
-                className="save-btn"
-                disabled={loading}
-              >
-                {loading ? 'Saving...' : 'Save Changes'}
-              </button>
-              <button
-                type="button"
-                className="cancel-btn"
-                onClick={() => {
-                  // Reset form to original values
-                  setFormData({
-                    first_name: user.first_name || '',
-                    last_name: user.last_name || '',
-                    email: user.email || '',
-                    department: user.department || '',
-                    password: '',
-                    password_confirmation: '',
-                  });
-                  setErrorMessage('');
-                  setSuccessMessage('');
-                }}
-                disabled={loading}
-              >
-                Reset
-              </button>
+      <div className="page-shell settings-page">
+        <div className="page-grid wide">
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Settings</span>
+              <span className="pill">/api/users/{user.id}</span>
             </div>
-          </section>
-        </form>
-      </main>
+            <div className="card-body">
+              {successMessage && <div className="pill success">{successMessage}</div>}
+              {errorMessage && <div className="pill error">{errorMessage}</div>}
+              <div className="muted">Update profile details and password.</div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Profile</span>
+            </div>
+            <div className="card-body">
+              <form onSubmit={handleSubmit} className="settings-form">
+                <div className="form-grid">
+                  <label>
+                    First Name
+                    <input
+                      type="text"
+                      name="first_name"
+                      value={formData.first_name}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+                  <label>
+                    Last Name
+                    <input
+                      type="text"
+                      name="last_name"
+                      value={formData.last_name}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+                  <label>
+                    Department
+                    <input
+                      type="text"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      disabled={loading}
+                      placeholder="Optional"
+                    />
+                  </label>
+                  <label>
+                    Role
+                    <input
+                      type="text"
+                      value={user.role || 'N/A'}
+                      disabled
+                      className="disabled-input"
+                    />
+                  </label>
+                </div>
+
+                <div className="card-divider"></div>
+
+                <div className="section-heading">Preferences</div>
+                <div className="form-grid">
+                  <label>
+                    Notification Emails
+                    <select disabled={loading}>
+                      <option>Enabled</option>
+                      <option>Disabled</option>
+                    </select>
+                  </label>
+                  <label>
+                    Dashboard Theme
+                    <select disabled={loading}>
+                      <option>Soft Academic</option>
+                      <option>Dark Mode</option>
+                      <option>Minimal</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="card-divider"></div>
+
+                <div className="section-heading">Change Password</div>
+                <div className="muted">Leave blank if you don't want to change your password.</div>
+                <div className="form-grid">
+                  <label>
+                    New Password
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      disabled={loading}
+                    />
+                  </label>
+                  <label>
+                    Confirm New Password
+                    <input
+                      type="password"
+                      name="password_confirmation"
+                      value={formData.password_confirmation}
+                      onChange={handleChange}
+                      disabled={loading}
+                    />
+                  </label>
+                </div>
+
+                <div className="settings-actions">
+                  <button 
+                    type="submit" 
+                    className="save-btn"
+                    disabled={loading}
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    className="cancel-btn"
+                    onClick={() => {
+                      setFormData({
+                        first_name: user.first_name || '',
+                        last_name: user.last_name || '',
+                        email: user.email || '',
+                        department: user.department || '',
+                        password: '',
+                        password_confirmation: '',
+                      });
+                      setErrorMessage('');
+                      setSuccessMessage('');
+                    }}
+                    disabled={loading}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
     </Layout>
   );
 };

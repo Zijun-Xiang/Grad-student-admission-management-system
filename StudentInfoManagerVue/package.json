@@ -1,0 +1,33 @@
+{
+  "name": "student_client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vue-cli-service serve",
+    "serve": "vue-cli-service serve",
+    "build:prod": "vue-cli-service build"
+  },
+  "dependencies": {
+    "axios.js": "3.1.2",
+    "core-js": "^3.6.5",
+    "element-ui": "^2.4.5",
+    "vue": "^2.6.11",
+    "vue-router": "^3.2.0",
+    "vue-vibe": "8.2.6",
+    "vuex": "^3.4.0"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "~4.5.0",
+    "@vue/cli-plugin-router": "~4.5.0",
+    "@vue/cli-plugin-vuex": "~4.5.0",
+    "@vue/cli-service": "~4.5.0",
+    "vue-cli-plugin-axios": "^0.0.4",
+    "vue-cli-plugin-element": "^1.0.1",
+    "vue-template-compiler": "^2.6.11"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}

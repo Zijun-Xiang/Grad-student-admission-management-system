@@ -96,66 +96,90 @@ export default function RemindersPage() {
 
   return (
     <Layout>
-      <div className="reminders-page">
-        <h2>My Reminders</h2>
+      <div className="page-shell reminders-page">
+        <div className="page-grid wide">
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Reminders</span>
+              <span className="pill">/api/reminders</span>
+            </div>
+            <div className="card-body">
+              <div className="muted">Create, review, and delete reminders.</div>
+              {error && <div className="pill error">{error}</div>}
+            </div>
+          </div>
 
-        {error && <div className="error-message" style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#fee', color: '#c33', borderRadius: '6px' }}>{error}</div>}
-
-        <div className="reminder-form">
-          <input
-            type="text"
-            placeholder="Reminder text"
-            value={newReminder.text}
-            onChange={e => setNewReminder({ ...newReminder, text: e.target.value })}
-            maxLength={255}
-          />
-          <input
-            type="date"
-            value={newReminder.due_date}
-            onChange={e => setNewReminder({ ...newReminder, due_date: e.target.value })}
-          />
-          <select
-            value={newReminder.priority}
-            onChange={e => setNewReminder({ ...newReminder, priority: e.target.value })}
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-          <button onClick={addReminder}>Add Reminder</button>
-        </div>
-
-        {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center' }}>Loading reminders...</div>
-        ) : reminders.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>No reminders yet. Create one above!</div>
-        ) : (
-          <ul className="reminder-list">
-            {reminders.map(r => (
-              <li key={r.id} className={`priority-${r.priority}`}>
-                <div className="reminder-content">
-                  <span className="reminder-text">{r.text}</span>
-                  {r.due_date && (
-                    <span className="due-date">Due: {formatDate(r.due_date)}</span>
-                  )}
-                  {r.created_by && (
-                    <span className="created-by" style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic' }}>
-                      From: {r.created_by.first_name} {r.created_by.last_name}
-                    </span>
-                  )}
-                </div>
-                <button 
-                  className="delete-reminder-btn" 
-                  onClick={() => deleteReminder(r.id)}
-                  aria-label="Delete reminder"
-                  title="Delete reminder"
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Create Reminder</span>
+            </div>
+            <div className="card-body">
+              <div className="reminder-form">
+                <input
+                  type="text"
+                  placeholder="Reminder text"
+                  value={newReminder.text}
+                  onChange={e => setNewReminder({ ...newReminder, text: e.target.value })}
+                  maxLength={255}
+                />
+                <input
+                  type="date"
+                  value={newReminder.due_date}
+                  onChange={e => setNewReminder({ ...newReminder, due_date: e.target.value })}
+                />
+                <select
+                  value={newReminder.priority}
+                  onChange={e => setNewReminder({ ...newReminder, priority: e.target.value })}
                 >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+                <button onClick={addReminder}>Add Reminder</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="card table-card grid-span-2 reminders-list-card">
+            <div className="card-header">
+              <span className="card-title">Reminder List</span>
+              <span className="pill">GET</span>
+            </div>
+            <div className="card-body">
+              {loading ? (
+                <div className="muted">Loading reminders...</div>
+              ) : reminders.length === 0 ? (
+                <div className="muted">No reminders yet. Create one above!</div>
+              ) : (
+                <ul className="reminder-list">
+                  {reminders.map(r => (
+                    <li key={r.id} className={`priority-${r.priority}`}>
+                      <div className="reminder-content">
+                        <span className="reminder-text">{r.text}</span>
+                        {r.due_date && (
+                          <span className="due-date">Due: {formatDate(r.due_date)}</span>
+                        )}
+                        {r.created_by && (
+                          <span className="created-by">
+                            From: {r.created_by.first_name} {r.created_by.last_name}
+                          </span>
+                        )}
+                      </div>
+                      <button 
+                        className="delete-reminder-btn" 
+                        onClick={() => deleteReminder(r.id)}
+                        aria-label="Delete reminder"
+                        title="Delete reminder"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </Layout>
   );

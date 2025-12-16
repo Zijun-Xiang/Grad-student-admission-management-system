@@ -699,7 +699,7 @@ const StudentDetail = () => {
 
   return (
     <Layout>
-      <div className="student-detail-container">
+      <div className="page-shell student-detail-container">
         <button onClick={() => navigate(-1)} className="back-btn">
           Back
         </button>

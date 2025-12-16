@@ -1,28 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
-import Sidebar from '../components/layout/Sidebar';
-import Navbar from '../components/layout/Navbar';
+import Layout from '../components/layout/Layout';
 import PrerequisiteModal from '../components/PrerequisiteModal';
-import axios from "axios";
 import './coursePlanner.css'
-
-const api = axios.create({
-    baseURL: "http://127.0.0.1:8000/api",
-});
-
-// Add auth token to all requests
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+import { api, formatAxiosError } from "../api/axiosClient";
 
 export default function CoursePlanner() {
     const [courses, setCourses] = useState([]);
     const [search, setSearch] = useState("");
     const [planned, setPlanned] = useState([]); 
-    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [terms, setTerms] = useState([]); 
     const [nextTermId, setNextTermId] = useState(1);
     const [removedCourses, setRemovedCourses] = useState([]);  // Track removed courses for deletion
@@ -33,6 +18,7 @@ export default function CoursePlanner() {
     const [showPrereqModal, setShowPrereqModal] = useState(false);
     const [studentId, setStudentId] = useState(null);
     const [completedPrerequisites, setCompletedPrerequisites] = useState([]);
+    const [apiError, setApiError] = useState("");
 
     // Fetch courses and student ID on mount
     useEffect(() => {
@@ -40,7 +26,10 @@ export default function CoursePlanner() {
         api
             .get('/courses')
             .then(res => setCourses(res.data || []))
-            .catch(err => console.error('Failed to load courses', err));
+            .catch(err => {
+                console.error('Failed to load courses', err);
+                setApiError(formatAxiosError(err));
+            });
         
         // Fetch authenticated user and extract student ID from student table
         api 
@@ -53,7 +42,10 @@ export default function CoursePlanner() {
                     console.error('No student record found for authenticated user');
                 }
             })
-            .catch(err => console.error('Failed to load user info', err));
+            .catch(err => {
+                console.error('Failed to load user info', err);
+                setApiError(formatAxiosError(err));
+            });
     }, []);
 
     // Load saved terms from backend after studentId is set
@@ -73,7 +65,10 @@ export default function CoursePlanner() {
                     setShowPrereqModal(true);
                 }
             })
-            .catch(err => console.error('Failed to check prereq modal status', err));
+            .catch(err => {
+                console.error('Failed to check prereq modal status', err);
+                setApiError(formatAxiosError(err));
+            });
         
         api
             .get(`/students/${studentId}/schedule`)
@@ -97,7 +92,10 @@ export default function CoursePlanner() {
                 setNextTermId(Math.max(...transformedTerms.map(t => t.id)) + 1);
               }
             })
-            .catch(err => console.error('Failed to load terms', err));
+            .catch(err => {
+                console.error('Failed to load terms', err);
+                setApiError(formatAxiosError(err));
+            });
         
         // Load completed prerequisites for display
         api
@@ -112,7 +110,10 @@ export default function CoursePlanner() {
                 .filter(Boolean);
               setCompletedPrerequisites(completed);
             })
-            .catch(err => console.error('Failed to load enrollments', err));
+            .catch(err => {
+                console.error('Failed to load enrollments', err);
+                setApiError(formatAxiosError(err));
+            });
     }, [studentId]);
 
     const filtered = courses.filter(c => {
@@ -384,19 +385,24 @@ export default function CoursePlanner() {
     }
 
     return (
-        <>
-            <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-            <Navbar />
+        <Layout>
             <PrerequisiteModal 
                 isOpen={showPrereqModal} 
                 onClose={handleClosePrereqModal}
                 onSubmit={handlePrereqModalSubmit}
                 allCourses={courses}
             />
-            <div className="course-planner-page">
+            <div className="page-shell course-planner-page">
                 <div className="planner-header">
                     <h2>Course Planner</h2>
                 </div>
+                {apiError ? (
+                    <div className="card" role="alert" style={{ borderColor: "crimson", marginBottom: 12 }}>
+                        <div className="card-body" style={{ color: "crimson", whiteSpace: "pre-wrap" }}>
+                            {apiError}
+                        </div>
+                    </div>
+                ) : null}
 
                 <div className="planner-grid">
                     <div className="planner-left">
@@ -459,19 +465,9 @@ export default function CoursePlanner() {
                                 <button className="btn btn-primary" onClick={handleSave}>Save Schedule</button>
                             </div>
                         </section>
-                        <section className="terms-row-container card">
+                        <section className="terms-grid-container card">
                             <h3>Terms</h3>
-                            <div
-                                className="terms-row"
-                                ref={termsRowRef}
-                                onMouseDown={onTermsMouseDown}
-                                onMouseMove={onTermsMouseMove}
-                                onMouseUp={onTermsMouseUp}
-                                onMouseLeave={onTermsMouseUp}
-                                onTouchStart={onTermsTouchStart}
-                                onTouchMove={onTermsTouchMove}
-                                onTouchEnd={onTermsTouchEnd}
-                            >
+                            <div className="terms-grid">
                                 {terms.length === 0 && <div className="placeholder">No terms yet. Add one on the right.</div>}
                                 {terms.map(t => (
                                     <div key={t.id} className="term-card" onDragOver={allowDrop} onDrop={e => onDropToTerm(e, t.id)}>
@@ -510,7 +506,7 @@ export default function CoursePlanner() {
                     
                 </div>
             </div>
-        </>
+        </Layout>
     );
 }
 

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/layout/Sidebar';
-import Navbar from '../components/layout/Navbar';
+import Layout from '../components/layout/Layout';
 import './AdminDocumentReview.css';
 import documentVaultApi from '../features/DocumentVault/api/documentVaultApi';
 
 const AdminDocumentReview = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [documents, setDocuments] = useState([]);
   const [searchString, setSearchString] = useState('');
   const [loading, setLoading] = useState(true);
@@ -134,133 +132,138 @@ const AdminDocumentReview = () => {
   );
 
   return (
-    <>
-      <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <Navbar />
-      <main style={{ paddingLeft: sidebarOpen ? '230px' : '0' }}>
-        <div className="admin-docs-container">
-          <div className="admin-docs-header">
-            <h1>Document Review Queue</h1>
-            <p>Review and manage all uploaded documents across the system</p>
+    <Layout>
+      <div className="page-shell admin-document-review-page">
+        <div className="page-grid wide">
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Document Review Queue</span>
+              <span className="pill">documentVaultApi</span>
+            </div>
+            <div className="card-body">
+              <div className="muted">Review and manage all uploaded documents across the system</div>
+              <input
+                type="text"
+                placeholder="Search by file name..."
+                className="search-input"
+                value={searchString}
+                onChange={(e) => setSearchString(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="search-section">
-            <input
-              type="text"
-              placeholder="Search by file name..."
-              className="search-input"
-              value={searchString}
-              onChange={(e) => setSearchString(e.target.value)}
-            />
-          </div>
-
-          {loading ? (
-            <p>Loading documents...</p>
-          ) : (
-            <>
-              <div className="document-list">
-                {filteredDocs.length === 0 ? (
-                  <p className="no-documents">No documents found.</p>
-                ) : (
-                  filteredDocs.map(doc => (
-                    <div key={doc.id} className="document-card">
-                      <div className="doc-info">
-                        <h4>{doc.name}</h4>
-                        <p><strong>Document Type:</strong> {doc.documentType}</p>
-                        <p><strong>Uploaded by:</strong> {doc.uploadedBy}</p>
-                        <p><strong>Date:</strong> {doc.date}</p>
-                        <p><strong>Size:</strong> {doc.size}</p>
-                        <p>
-                          <strong>Status:</strong>{' '}
-                          <span className={getStatusBadgeClass(doc.status)}>
-                            {doc.status}
-                          </span>
-                        </p>
-                        {doc.reviewComment && doc.status === 'Declined' && (
-                          <div className="review-comment">
-                            <strong>Decline Reason:</strong>
-                            <p className="comment-text">{doc.reviewComment}</p>
-                          </div>
-                        )}
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Pending Documents</span>
+              <span className="pill">{filteredDocs.length}</span>
+            </div>
+            <div className="card-body">
+              {loading ? (
+                <div className="muted">Loading documents...</div>
+              ) : (
+                <div className="document-list">
+                  {filteredDocs.length === 0 ? (
+                    <div className="muted">No documents found.</div>
+                  ) : (
+                    filteredDocs.map(doc => (
+                      <div key={doc.id} className="document-card">
+                        <div className="doc-info">
+                          <h4>{doc.name}</h4>
+                          <p><strong>Document Type:</strong> {doc.documentType}</p>
+                          <p><strong>Uploaded by:</strong> {doc.uploadedBy}</p>
+                          <p><strong>Date:</strong> {doc.date}</p>
+                          <p><strong>Size:</strong> {doc.size}</p>
+                          <p>
+                            <strong>Status:</strong>{' '}
+                            <span className={getStatusBadgeClass(doc.status)}>
+                              {doc.status}
+                            </span>
+                          </p>
+                          {doc.reviewComment && doc.status === 'Declined' && (
+                            <div className="review-comment">
+                              <strong>Decline Reason:</strong>
+                              <p className="comment-text">{doc.reviewComment}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="doc-actions">
+                          <button onClick={() => handleDownload(doc.id, doc.name)}>
+                            Download
+                          </button>
+                          {doc.status === 'Pending Review' && (
+                            <>
+                              <button
+                                className="approve-btn"
+                                onClick={() => handleApprove(doc)}
+                                disabled={updating}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                className="decline-btn"
+                                onClick={() => handleDeclineClick(doc)}
+                                disabled={updating}
+                              >
+                                Decline
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="doc-actions">
-                        <button onClick={() => handleDownload(doc.id, doc.name)}>
-                          Download
-                        </button>
-                        {doc.status === 'Pending Review' && (
-                          <>
-                            <button
-                              className="approve-btn"
-                              onClick={() => handleApprove(doc)}
-                              disabled={updating}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              className="decline-btn"
-                              onClick={() => handleDeclineClick(doc)}
-                              disabled={updating}
-                            >
-                              Decline
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Decline Modal */}
-              {showDeclineModal && (
-                <div className="modal-overlay" onClick={() => setShowDeclineModal(false)}>
-                  <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                    <h3>Decline Document</h3>
-                    <p>
-                      <strong>Document:</strong> {selectedDocument?.name}
-                    </p>
-                    <label>
-                      <strong>Reason for Decline (Required):</strong>
-                      <textarea
-                        value={declineReason}
-                        onChange={(e) => setDeclineReason(e.target.value)}
-                        placeholder="Please provide a reason for declining this document..."
-                        rows="5"
-                        maxLength={1000}
-                        className="decline-reason-input"
-                      />
-                      <span className="char-count">
-                        {declineReason.length}/1000 characters
-                      </span>
-                    </label>
-                    <div className="modal-actions">
-                      <button
-                        className="cancel-btn"
-                        onClick={() => {
-                          setShowDeclineModal(false);
-                          setSelectedDocument(null);
-                          setDeclineReason('');
-                        }}
-                        disabled={updating}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="submit-decline-btn"
-                        onClick={handleDeclineSubmit}
-                        disabled={updating || !declineReason.trim()}
-                      >
-                        {updating ? 'Submitting...' : 'Submit Decline'}
-                      </button>
-                    </div>
-                  </div>
+                    ))
+                  )}
                 </div>
               )}
-            </>
-          )}
+            </div>
+          </div>
         </div>
-      </main>
-    </>
+
+        {showDeclineModal && (
+          <div className="modal-overlay" onClick={() => setShowDeclineModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h3>Decline Document</h3>
+              <p>
+                <strong>Document:</strong> {selectedDocument?.name}
+              </p>
+              <label>
+                <strong>Reason for Decline (Required):</strong>
+                <textarea
+                  value={declineReason}
+                  onChange={(e) => setDeclineReason(e.target.value)}
+                  placeholder="Please provide a reason for declining this document..."
+                  rows="5"
+                  maxLength={1000}
+                  className="decline-reason-input"
+                />
+                <span className="char-count">
+                  {declineReason.length}/1000 characters
+                </span>
+              </label>
+              <div className="modal-actions">
+                <button
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowDeclineModal(false);
+                    setSelectedDocument(null);
+                    setDeclineReason('');
+                  }}
+                  disabled={updating}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="submit-decline-btn"
+                  onClick={handleDeclineSubmit}
+                  disabled={updating || !declineReason.trim()}
+                >
+                  {updating ? 'Submitting...' : 'Submit Decline'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 };
 

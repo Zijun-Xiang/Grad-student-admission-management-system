@@ -87,47 +87,93 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <main className="dashboard-container">
-        <div className="searchbar-container">
-          <input
-            type="text"
-            className="searchbar"
-            placeholder="What would you like to do?"
-          />
+      <div className="page-shell dashboard-page">
+        <div className="card search-card">
+          <div className="card-body">
+            <div className="search-head">
+              <div>
+                <div className="section-heading">Find a feature</div>
+                <div className="muted">Jump straight to any tool or workflow</div>
+              </div>
+              <span className="pill">Quick Nav</span>
+            </div>
+            <div className="searchbar-container">
+              <input
+                type="text"
+                className="searchbar"
+                placeholder="Type 'documents', 'course planner', or 'settings'"
+                value={searchInput}
+                onChange={handleSearchChange}
+                onKeyDown={handleSearchSubmit}
+              />
+              {searchSuggestions.length > 0 && (
+                <div className="search-suggestions">
+                  {searchSuggestions.map(suggestion => (
+                    <button
+                      key={suggestion}
+                      className="suggestion-btn"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="dashboard-columns">
-          <div className="dashboard-main">
-            <h2 className="dashboard-section-title">Services</h2>
-            <CalendarWidget />
-            <DocumentVault />
-            <AdvisorContactWidget facultyId={user?.id || 1} />
-            {/* Add other main widgets here */}
+        <div className="page-grid wide dashboard-grid">
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Document Vault</span>
+              <span className="pill">Files</span>
+            </div>
+            <div className="card-body card-body-flush">
+              <DocumentVault />
+            </div>
           </div>
 
-          <div className="dashboard-side">
-            <h2 className="dashboard-section-title">Progress Tracker</h2>
-            <MajorCompletionWidget studentId={user?.id || 1} />
-            <MilestoneCard studentId={user?.id} />
-            <DeadlineList deadlines={deadlines} />
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Advisor Contact</span>
+            </div>
+            <div className="card-body">
+              <AdvisorContactWidget facultyId={user?.id || 1} />
+            </div>
           </div>
+
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Progress</span>
+              <span className="pill">Program</span>
+            </div>
+            <div className="card-body">
+              <MajorCompletionWidget studentId={user?.id || 1} />
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Milestones</span>
+            </div>
+            <div className="card-body">
+              <MilestoneCard studentId={user?.id} />
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Deadlines</span>
+            </div>
+            <div className="card-body">
+              <DeadlineList deadlines={deadlines} />
+            </div>
+          </div>
+
+          <CalendarWidget className="grid-span-2 reminder-prominent" />
         </div>
-
-        {/* <section className="dashboard-section">
-          <h2>Faculty Evaluations</h2>
-          <EvaluationStatus evaluations={evaluations} />
-        </section>
-
-        <section className="dashboard-section">
-          <h2>Reminders & Alerts</h2>
-          <ReminderPanel reminders={reminders} />
-        </section>
-
-        <section className="dashboard-section">
-          <h2>Quick Actions</h2>
-          <QuickActions />
-        </section> */}
-      </main>
+      </div>
     </Layout>
   );
 };

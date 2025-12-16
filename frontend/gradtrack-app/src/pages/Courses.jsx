@@ -1,17 +1,13 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from '../components/layout/Sidebar';
-import Navbar from '../components/layout/Navbar';
-import axios from "axios";
+import Layout from '../components/layout/Layout';
 import './Courses.css'
-const api = axios.create({
-    baseURL: "http://127.0.0.1:8000/api",
-});
+import { api, formatAxiosError } from "../api/axiosClient";
 
 export default function Courses() {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [filterLevel, setFilterLevel] = useState("");
+    const [apiError, setApiError] = useState("");
     // state for adding a new course
     const [newCourse, setNewCourse] = useState({
         course_code: "",
@@ -34,6 +30,7 @@ export default function Courses() {
     async function fetchCourses() {
         try {
             setLoading(true);
+            setApiError("");
             const params = {};
             if (filterLevel) params.level = filterLevel;
             const response = await api.get("/courses", { params });
@@ -45,7 +42,7 @@ export default function Courses() {
             setCourses(normalized);
         } catch (error) {
             console.error("Error fetching courses:", error);
-            alert("Failed to fetch courses. Please try again later.", error);
+            setApiError(formatAxiosError(error));
         }
         finally {
             setLoading(false);
@@ -54,6 +51,7 @@ export default function Courses() {
     //function to import courses from a json file
     async function importCoursesFromJson(jsonFile) {
         try {
+            setApiError("");
             // First pass: Create all courses without prerequisites
             const courseCodeMap = {}; // Maps course_code to the newly created course ID
             
@@ -74,6 +72,8 @@ export default function Courses() {
                     const existing = existingResponse.data.find(c => c.course_code === course.course_code);
                     if (existing) {
                         courseCodeMap[course.course_code] = existing.id;
+                    } else {
+                        throw error;
                     }
                 }
             }
@@ -106,12 +106,13 @@ export default function Courses() {
             await fetchCourses();
         } catch (error) {
             console.error("Error importing courses:", error);
-            alert("Failed to import courses. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
     //function to export courses to a json file
     async function exportCoursesToJson() {
         try {
+            setApiError("");
             const response = await api.get("/courses");
             const data = response.data;
             const json = JSON.stringify(data, null, 2);
@@ -125,13 +126,14 @@ export default function Courses() {
             document.body.removeChild(link);
         } catch (error) {
             console.error("Error exporting courses:", error);
-            alert("Failed to export courses. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
     // adds a new course to the database
     async function handleAddCourse(e) {
         e.preventDefault();
         try {
+            setApiError("");
             await api.post("/courses", newCourse);
             setNewCourse({
                 course_code: "",
@@ -142,19 +144,19 @@ export default function Courses() {
             await fetchCourses();
         } catch (error) {
             console.error("Error adding course:", error);
-            alert("Failed to add course. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
     // deletes a course from the database
     async function handleDeleteCourse(course) {
         if (!window.confirm(`Are you sure you want to delete ${course.course_code}?`)) return;
         try {
+            setApiError("");
             await api.delete(`/courses/${course.id}`);
             await fetchCourses();
         } catch (error) {
             console.error("Error deleting course:", error);
-            const errorMsg = error.response?.data?.message || error.message || "Unknown error";
-            alert(`Failed to delete course: ${errorMsg}`);
+            setApiError(formatAxiosError(error));
         }
     }
     // starts editing a course
@@ -176,13 +178,14 @@ export default function Courses() {
     // saves the edited course to the database
     async function saveEditing(courseId) {
         try {
+            setApiError("");
             await api.put(`/courses/${courseId}`, editingCourse);
             setEditingID(null);
             setEditingCourse({});
             await fetchCourses();
         } catch (error) {
             console.error("Error updating course:", error);
-            alert("Failed to update course. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
     // function to handle adding a prerequisite group
@@ -195,13 +198,14 @@ export default function Courses() {
         }
 
         try {
+            setApiError("");
             await api.post(`/courses/${course_id}/prerequisite-groups`,
             { prerequisite_ids: prerequisiteIds });
             setGroupForm({ course_id: "", prerequisiteIds: [] });
             await fetchCourses();
         } catch (error) {
             console.error("Error adding prerequisite group:", error);
-            alert("Failed to add prerequisite group. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
 
@@ -209,11 +213,12 @@ export default function Courses() {
     async function handleRemovePrerequisiteGroup(courseId, groupId) {
         if (!window.confirm(`Are you sure you want to remove this prerequisite group?`)) return;
         try {
+            setApiError("");
             await api.delete(`/courses/${courseId}/prerequisite-groups/${groupId}`);
             await fetchCourses();
         } catch (error) {
             console.error("Error removing prerequisite group:", error);
-            alert("Failed to remove prerequisite group. Please try again later.");
+            setApiError(formatAxiosError(error));
         }
     }
 
@@ -233,31 +238,51 @@ export default function Courses() {
     }
 
     return (
-        <>
-            <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-            <Navbar sidebarOpen={sidebarOpen} />
-            <main style={{ paddingLeft: sidebarOpen ? '20rem' : '5rem' }}>
+        <Layout>
+            <div className="page-shell courses-page">
+                <div className="page-grid wide">
+                {apiError ? (
+                    <div className="card" role="alert" style={{ borderColor: "crimson" }}>
+                        <div className="card-header">
+                            <span className="card-title" style={{ color: "crimson" }}>API Error</span>
+                        </div>
+                        <div className="card-body" style={{ color: "crimson", whiteSpace: "pre-wrap" }}>
+                            {apiError}
+                        </div>
+                    </div>
+                ) : null}
                 {/* Filter by course level */}
-                <div className="filter-level">
-                    <label className="font-medium">Filter by Level:</label>
-                    <select
-                        className="filter-level-select"
-                        value={filterLevel}
-                        onChange={e => setFilterLevel(e.target.value)}
-                    >
-                        <option value="">All</option>
-                        <option value="undergraduate">Undergraduate</option>
-                        <option value="graduate">Graduate</option>
-                    </select>
+                <div className="card">
+                    <div className="card-header">
+                        <span className="card-title">Filter Courses</span>
+                        <span className="pill">GET /courses</span>
+                    </div>
+                    <div className="card-body filter-level">
+                        <label className="font-medium">Filter by Level:</label>
+                        <select
+                            className="filter-level-select"
+                            value={filterLevel}
+                            onChange={e => setFilterLevel(e.target.value)}
+                        >
+                            <option value="">All</option>
+                            <option value="undergraduate">Undergraduate</option>
+                            <option value="graduate">Graduate</option>
+                        </select>
                     {/*<button className="reset-sort-button" onClick={() => {
                         setFilterLevel("");
                         fetchCourses();
                     }}>
                         Reset Filter
                     </button>*/}
+                    </div>
                 </div>
                 {/* List all courses table */}
-                <div className="courses-table">
+                <div className="card table-card">
+                    <div className="card-header">
+                        <span className="card-title">Courses</span>
+                        <span className="pill">GET</span>
+                    </div>
+                    <div className="card-body courses-table">
                     {/* TODO: add amount per page and more than 1 page */}
                     <table className="displayed-courses">
                         <thead>
@@ -329,10 +354,15 @@ export default function Courses() {
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </div>
                 {/* Add course form */}
-                <div className="add-course-form">
-                    <h2>Add New Course</h2>
+                <div className="card add-course-form">
+                    <div className="card-header">
+                        <span className="card-title">Add New Course</span>
+                        <span className="pill">POST /courses</span>
+                    </div>
+                    <div className="card-body">
                     <form onSubmit={handleAddCourse}>
                         <div>
                             <label>Course Code:</label>
@@ -389,10 +419,15 @@ export default function Courses() {
                         </div>
                         <button type="submit">Add Course</button>
                     </form>
+                    </div>
                 </div>
                 {/* Add pre-requisites form */}
-                <div className="add-prerequisites-form">
-                    <h2>Add Prerequisite Group</h2>
+                <div className="card add-prerequisites-form">
+                    <div className="card-header">
+                        <span className="card-title">Add Prerequisite Group</span>
+                        <span className="pill">POST /courses/:id/prerequisite-groups</span>
+                    </div>
+                    <div className="card-body">
                     <form onSubmit={handleAddPrerequisiteGroup}>
                         <label className="group-name-label">Select the course that this group applies to:</label>
                         <select
@@ -426,9 +461,14 @@ export default function Courses() {
                         <button type="submit">Add Prerequisite Group</button>
                     </form>
                     <p>Note: adding multiple prerequisites to a group acts as an AND operation.</p>
+                    </div>
                 </div>
                 {/* Import/Export buttons */}
-                <div className="import-export-buttons">
+                <div className="card import-export-buttons">
+                    <div className="card-header">
+                        <span className="card-title">Import / Export</span>
+                    </div>
+                    <div className="card-body">
                     <input
                         type="file"
                         accept=".json"
@@ -445,8 +485,10 @@ export default function Courses() {
                         }}
                     />
                     <button onClick={exportCoursesToJson}>Export Courses to JSON</button>
+                    </div>
                 </div>
-            </main>
-        </>
+                </div>
+            </div>
+        </Layout>
     );
 }

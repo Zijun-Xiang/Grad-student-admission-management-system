@@ -1,0 +1,104 @@
+<template>
+  <div  style="display: flex;flex-direction: column;align-items: center; ">
+    <div style="color: black;font-size: 30px;font-weight: bolder;margin-bottom: 30px;">Student Grade Lookup</div>
+    <el-form style="display: flex;flex-direction: row;">
+      <el-form-item label="Select Term" style="display: flex;flex-direction: row;">
+        <el-select v-model="term" placeholder="Please choose a term">
+          <el-option v-for="(item, index) in termList" :key="index" :label="item" :value="item"></el-option>
+        </el-select>
+      </el-form-item>
+    </el-form>
+    <el-card >
+      <div style="width: 100%;text-align: center;color: black;font-size: 30px;font-weight: bolder;margin-bottom: 20px;">Search Results</div>
+      <el-table :data="tableData" border >
+        
+        <el-table-column fixed prop="cid" label="Course ID" width="150">
+        </el-table-column>
+        <el-table-column prop="cname" label="Course Code" width="150">
+        </el-table-column>
+        <el-table-column prop="tid" label="Instructor ID" width="150">
+        </el-table-column>
+        <el-table-column prop="tname" label="Instructor Name" width="150">
+        </el-table-column>
+        <el-table-column prop="ccredit" label="Credits" width="150">
+        </el-table-column>
+        <el-table-column prop="grade" label="Grade" width="150">
+        </el-table-column>
+      </el-table>
+      <p>
+        Average grade: {{ avg }}
+      </p>
+      <el-pagination background layout="prev, pager, next" :total="total" :page-size="pageSize"
+        @current-change="changePage">
+      </el-pagination>
+    </el-card>
+  </div>
+</template>
+
+<script>
+export default {
+  methods: {
+    changePage(page) {
+      page = page - 1
+      const that = this
+      let start = page * that.pageSize, end = that.pageSize * (page + 1)
+      let length = that.tmpList.length
+      let ans = (end < length) ? end : length
+      that.tableData = that.tmpList.slice(start, ans)
+    },
+  },
+  data() {
+    return {
+      tableData: null,
+      pageSize: 10,
+      total: null,
+      tmpList: null,
+      avg: 0,
+      term: sessionStorage.getItem('currentTerm'),
+      termList: null
+    }
+  },
+  created() {
+    const that = this
+    axios.get('http://localhost:9451/SCT/findAllTerm').then(function (resp) {
+      that.termList = resp.data
+    })
+  },
+  watch: {
+    term: {
+      handler(newTerm, oldTerm) {
+        const sid = sessionStorage.getItem('sid')
+        const that = this
+        axios.get('http://localhost:9451/SCT/findBySid/' + sid + '/' + newTerm).then(function (resp) {
+          that.tmpList = resp.data
+          that.total = resp.data.length
+          let start = 0, end = that.pageSize
+          let length = that.tmpList.length
+          let ans = (end < length) ? end : length
+          that.tableData = that.tmpList.slice(start, end)
+          let totalScore = 0
+          for (let i = 0; i < that.total; i++) {
+            totalScore += that.tmpList[i].ccredit
+            that.avg += that.tmpList[i].ccredit * that.tmpList[i].grade
+          }
+          if (totalScore === 0)
+            that.avg = 0
+          else
+            that.avg /= totalScore
+        })
+      },
+      immediate: true
+    }
+  }
+}
+</script>
+
+<!--
+  TODO：
+  1. 管理员：
+    1. 学生选课管理
+    2. 成绩管理（只能当前学期）
+  2. 学生：成绩排名
+  3. 教师：成绩管理（？使用弹框）（只能当前学期）
+
+-->
