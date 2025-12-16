@@ -58,7 +58,7 @@ watch(
 
 const title = computed(() => {
   const dt = new Date(viewYear.value, viewMonth.value, 1)
-  return dt.toLocaleString(undefined, { month: 'long', year: 'numeric' })
+  return dt.toLocaleString('en-US', { month: 'long', year: 'numeric' })
 })
 
 const entryDateLabel = computed(() => {
@@ -214,4 +214,3 @@ const nextMonth = () => {
   border-color: #93c5fd;
 }
 </style>
-

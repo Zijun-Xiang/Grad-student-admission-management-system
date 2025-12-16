@@ -61,7 +61,7 @@
               <div v-if="!thesisUploadUnlocked" class="msg bad" style="margin: 10px 0 0">
                 Locked: available only in Term 3 and Term 4.
               </div>
-              <input type="file" @change="onThesisFileChange" accept=".pdf" />
+              <input type="file" @change="onThesisFileChange" :disabled="!thesisUploadUnlocked" accept=".pdf" />
               <button class="btn-primary" @click="uploadThesis" :disabled="!thesisUploadUnlocked || !thesisFile || uploadingThesis">
                 {{ uploadingThesis ? 'Uploading...' : 'Upload' }}
               </button>
@@ -73,14 +73,19 @@
                 Term 3 hold release requires you to register/take the Research Method course. Faculty will verify your course registration.
                 Upload proof here if requested (PDF/JPG/PNG).
               </p>
-              <div v-if="!term?.unlocks?.term3" class="msg bad" style="margin: 10px 0 0">
+              <div v-if="!researchMethodUploadUnlocked" class="msg bad" style="margin: 10px 0 0">
                 Locked: available starting Term 3.
               </div>
-              <input type="file" @change="onResearchMethodFileChange" accept=".pdf,.jpg,.jpeg,.png" />
+              <input
+                type="file"
+                @change="onResearchMethodFileChange"
+                :disabled="!researchMethodUploadUnlocked"
+                accept=".pdf,.jpg,.jpeg,.png"
+              />
               <button
                 class="btn-primary"
                 @click="uploadResearchMethodProof"
-                :disabled="!term?.unlocks?.term3 || !researchMethodFile || uploadingResearchMethod"
+                :disabled="!researchMethodUploadUnlocked || !researchMethodFile || uploadingResearchMethod"
               >
                 {{ uploadingResearchMethod ? 'Uploading...' : 'Upload' }}
               </button>
@@ -97,13 +102,11 @@
           <div v-else class="doc-list">
             <div v-for="d in documents" :key="d.doc_id" class="doc-item">
               <div class="info">
-                <div class="title">
-                  <strong>{{ d.doc_type }}</strong>
-                  <span class="badge" :class="d.status">{{ d.status }}</span>
-                </div>
-                <div class="meta">
-                  <span>{{ d.file_path }}</span>
-                  <span v-if="d.upload_date">· {{ d.upload_date }}</span>
+                <div class="doc-meta-row">
+                  <span class="doc-source-pill">{{ docTypeLabel(d.doc_type) }}</span>
+                  <span class="doc-format-pill">{{ fileFormatLabel(d.file_path) }}</span>
+                  <span class="doc-status-pill" :class="statusPillClass(d.status)">{{ statusLabel(d.status) }}</span>
+                  <span v-if="d.upload_date" class="meta">· {{ d.upload_date }}</span>
                 </div>
                 <div v-if="d.admin_comment" class="comment">Admin comment: {{ d.admin_comment }}</div>
               </div>
@@ -191,6 +194,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import { docTypeLabel, fileFormatLabel, statusLabel, statusPillClass } from '../utils/docDisplay'
 
 const router = useRouter()
 const user = ref({})
@@ -225,6 +229,11 @@ const thesisUploadUnlocked = computed(() => {
   return n >= 3 && n <= 4
 })
 
+const researchMethodUploadUnlocked = computed(() => {
+  const n = Number(term.value?.term_number || 1)
+  return n >= 3
+})
+
 const onAdmissionFileChange = (e) => {
   admissionFile.value = e?.target?.files?.[0] ?? null
 }
@@ -234,10 +243,18 @@ const onMpFormFileChange = (e) => {
 }
 
 const onThesisFileChange = (e) => {
+  if (!thesisUploadUnlocked.value) {
+    thesisFile.value = null
+    return
+  }
   thesisFile.value = e?.target?.files?.[0] ?? null
 }
 
 const onResearchMethodFileChange = (e) => {
+  if (!researchMethodUploadUnlocked.value) {
+    researchMethodFile.value = null
+    return
+  }
   researchMethodFile.value = e?.target?.files?.[0] ?? null
 }
 
@@ -714,7 +731,7 @@ onMounted(() => {
 .meta {
   color: #6b7280;
   font-size: 13px;
-  margin-top: 6px;
+  margin-top: 0;
 }
 .comment {
   margin-top: 6px;

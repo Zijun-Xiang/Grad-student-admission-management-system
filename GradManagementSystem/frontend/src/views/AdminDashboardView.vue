@@ -39,8 +39,8 @@
               <div></div>
             </div>
             <div v-for="h in holds" :key="h.hold_id || holdKey(h)" class="row">
-              <div>{{ h.student_username || `#${h.student_id}` }} (#{{ h.student_id }})</div>
-              <div>{{ h.hold_type }}</div>
+              <div>{{ h.student_username || `#${h.student_id}` }}</div>
+              <div><span class="doc-source-pill">{{ docTypeLabel(h.hold_type) }}</span></div>
               <div>{{ h.term_code || '-' }}</div>
               <div class="actions">
                 <button class="btn-approve" @click="liftHold(h)">Lift Hold</button>
@@ -56,8 +56,13 @@
           <div v-else class="review-list">
             <div v-for="d in pendingDocs" :key="d.doc_id" class="review-item">
               <div class="info">
-                <span class="student-name">{{ d.student_username || `#${d.student_id}` }} (#{{ d.student_id }})</span>
-                <span class="file-link">{{ d.doc_type }} · {{ d.file_path }}</span>
+                <span class="student-name">{{ d.student_username || `#${d.student_id}` }}</span>
+                <div class="doc-meta-row">
+                  <span class="doc-source-pill">{{ docTypeLabel(d.doc_type) }}</span>
+                  <span class="doc-format-pill">{{ fileFormatLabel(d.file_path) }}</span>
+                  <span class="doc-status-pill" :class="statusPillClass(d.status)">{{ statusLabel(d.status) }}</span>
+                  <span v-if="d.upload_date" class="muted">· {{ d.upload_date }}</span>
+                </div>
               </div>
               <div class="actions">
                 <button class="btn-view" @click="openDoc(d)">View</button>
@@ -133,6 +138,7 @@
           <div v-else class="table mt-20">
             <div class="row header thesis-row">
               <div>Student</div>
+              <div>Term</div>
               <div>Type</div>
               <div>Submission</div>
               <div>Defense</div>
@@ -141,7 +147,10 @@
             <div v-for="r in filteredThesisSchedules" :key="r.student_id" class="row thesis-row">
               <div>
                 <strong>{{ r.username || `#${r.student_id}` }}</strong>
-                <span class="muted"> (#{{ r.student_id }})</span>
+              </div>
+              <div>
+                <span v-if="r.term_number">Term {{ r.term_number }}</span>
+                <span v-else>-</span>
               </div>
               <div>{{ r.type || '-' }}</div>
               <div>{{ r.submission_date || '-' }}</div>
@@ -214,7 +223,7 @@
 	              <div></div>
 	            </div>
 	            <div v-for="u in users" :key="u.user_id" class="row users-row">
-	              <div>{{ u.username }} (#{{ u.user_id }})</div>
+	              <div>{{ u.username }}</div>
 	              <div>{{ u.role }}</div>
 	              <div>{{ u.email || '-' }}</div>
 	              <div>{{ u.entry_date || '-' }}</div>
@@ -275,6 +284,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { apiBaseURL } from '../api/client'
+import { docTypeLabel, fileFormatLabel, statusLabel, statusPillClass } from '../utils/docDisplay'
 
 const router = useRouter()
 
@@ -860,7 +870,7 @@ onMounted(() => {
   font-weight: 700;
 }
 .row.thesis-row {
-  grid-template-columns: 2fr 0.8fr 1fr 1fr 2fr;
+  grid-template-columns: 1.6fr 0.7fr 0.8fr 1fr 1fr 1.6fr;
 }
 
 .user-form {

@@ -34,7 +34,7 @@
             <div v-else class="review-list">
               <div v-for="h in researchHolds" :key="`${h.student_id}-${h.term_code || ''}`" class="review-item">
                 <div class="info">
-                  <span class="student-name">{{ h.student_username || `#${h.student_id}` }} (#{{ h.student_id }})</span>
+                  <span class="student-name">{{ h.student_username || `#${h.student_id}` }}</span>
                   <span class="file-link">
                     Hold: research_method · Term: {{ h.term_code || '-' }} · Research Method:
                     <strong>{{ Number(h.has_research_method) ? 'YES' : 'NO' }}</strong>
@@ -87,6 +87,7 @@
                 <div>{{ c.course_name || '-' }}</div>
                 <div>{{ c.credits || '-' }}</div>
                 <div class="actions">
+                  <button class="btn-view" @click="openCourseStudents(c)" :disabled="teachBusy">Students</button>
                   <button class="btn-reject" @click="removeTeachCourse(c.course_code)" :disabled="teachBusy">Remove</button>
                 </div>
               </div>
@@ -110,7 +111,6 @@
               <div v-for="s in filteredAdvisees" :key="s.student_id" class="row">
                 <div>
                   <strong>{{ displayAdviseeName(s) }}</strong>
-                  <span class="muted"> (#{{ s.student_id }})</span>
                 </div>
                 <div>{{ s.student_email || '-' }}</div>
                 <div>{{ s.entry_term_code || '-' }}</div>
@@ -163,7 +163,7 @@
                 <label>Students</label>
                 <select v-model="selectedStudentIds" multiple class="multi">
                   <option v-for="s in students" :key="s.student_id" :value="String(s.student_id)">
-                    {{ s.username }} (#{{ s.student_id }}) {{ s.entry_term_code ? `· ${s.entry_term_code}` : '' }}
+                    {{ s.username }} {{ s.entry_term_code ? `· ${s.entry_term_code}` : '' }}
                   </option>
                 </select>
                 <div class="hint">Hold Ctrl/Cmd to select multiple.</div>
@@ -191,7 +191,7 @@
             <div v-else class="review-list">
               <div v-for="a in assignments" :key="a.id" class="review-item">
                 <div class="info">
-                  <span class="student-name">{{ a.title }} (#{{ a.id }})</span>
+                  <span class="student-name">{{ a.title }}</span>
                   <span class="file-link">
                     Created: {{ a.created_at }} <span v-if="a.due_at">· Due: {{ a.due_at }}</span> · Submissions:
                     <strong>{{ a.submissions_count }}</strong>
@@ -215,7 +215,7 @@
             <div v-else class="review-list">
               <div v-for="r in submissions" :key="r.student_id" class="review-item">
                 <div class="info">
-                  <span class="student-name">{{ displayStudentName(r) }} (#{{ r.student_id }})</span>
+                  <span class="student-name">{{ displayStudentName(r) }}</span>
                   <span class="file-link">
                     {{ r.submission_id ? `Submitted: ${r.submitted_at}` : 'Not submitted yet.' }}
                     <span v-if="r.entry_term_code">· Cohort: {{ r.entry_term_code }}</span>
@@ -275,9 +275,9 @@
           <div v-else class="review-list">
             <div v-for="doc in filteredAdviseeDocs" :key="doc.doc_id" class="review-item">
               <div class="info">
-                <span class="student-name">
-                  {{ displayStudentName(doc) }} (#{{ doc.student_id }}) <span v-if="doc.entry_term_code" class="muted">· {{ doc.entry_term_code }}</span>
-                </span>
+                  <span class="student-name">
+                    {{ displayStudentName(doc) }} <span v-if="doc.entry_term_code" class="muted">· {{ doc.entry_term_code }}</span>
+                  </span>
                 <div class="doc-meta-row">
                   <span class="doc-source-pill">{{ docTypeLabel(doc.doc_type) }}</span>
                   <span class="doc-format-pill">{{ fileFormatLabel(doc.file_path) }}</span>
@@ -323,6 +323,7 @@
             <div v-else class="table mt-20">
               <div class="row header thesis-row">
                 <div>Student</div>
+                <div>Term</div>
                 <div>Type</div>
                 <div>Submission</div>
                 <div>Defense</div>
@@ -332,7 +333,10 @@
               <div v-for="r in filteredThesisRows" :key="r.student_id" class="row thesis-row">
                 <div>
                   <strong>{{ r.student_username || `#${r.student_id}` }}</strong>
-                  <span class="muted"> (#{{ r.student_id }})</span>
+                </div>
+                <div>
+                  <span v-if="r.term_number" class="muted">Term {{ r.term_number }}</span>
+                  <span v-else class="muted">-</span>
                 </div>
                 <div>{{ r.type || '-' }}</div>
                 <div>{{ r.submission_date || '-' }}</div>
@@ -356,19 +360,55 @@
 
           <div v-if="mpRequests.length === 0" class="empty-state">No new advising requests.</div>
           <div v-else class="review-list">
-            <div v-for="stu in mpRequests" :key="stu.student_id" class="review-item highlight-item">
-              <div class="info">
-                <span class="student-name">{{ displayStudentName(stu) }} (#{{ stu.student_id }})</span>
-                <span class="email-text">{{ stu.email }}</span>
-              </div>
-              <div class="actions">
-                <button @click="respondMP(stu, 'reject')" class="btn-reject">Decline</button>
+              <div v-for="stu in mpRequests" :key="stu.student_id" class="review-item highlight-item">
+                <div class="info">
+                  <span class="student-name">{{ displayStudentName(stu) }}</span>
+                  <span class="email-text">{{ stu.email }}</span>
+                </div>
+                <div class="actions">
+                  <button @click="respondMP(stu, 'reject')" class="btn-reject">Decline</button>
                 <button @click="respondMP(stu, 'accept')" class="btn-approve">Accept Student</button>
               </div>
             </div>
           </div>
         </div>
       </main>
+    </div>
+
+    <div v-if="showCourseStudentsModal" class="modal-overlay">
+      <div class="modal-box wide-modal">
+        <h3>Course Students</h3>
+        <div class="comment-meta" v-if="activeCourseCode">
+          <strong>{{ activeCourseCode }}</strong>
+        </div>
+
+        <div class="form-row" style="margin: 6px 0 0">
+          <input v-model="courseStudentsSearch" class="select" type="text" placeholder="Search students..." />
+          <button class="btn-view" @click="refreshCourseStudents" :disabled="courseStudentsLoading">Refresh</button>
+        </div>
+
+        <div v-if="courseStudentsMsg" class="msg" :class="{ ok: courseStudentsOk, bad: !courseStudentsOk }">{{ courseStudentsMsg }}</div>
+        <div v-if="courseStudentsLoading" class="loading-text">Loading...</div>
+        <div v-else-if="filteredCourseStudents.length === 0" class="empty-state">No students found.</div>
+        <div v-else class="table mt-20">
+          <div class="row header roster-row">
+            <div>Student</div>
+            <div>Email</div>
+            <div>Cohort</div>
+            <div>Term</div>
+          </div>
+          <div v-for="s in filteredCourseStudents" :key="s.student_id" class="row roster-row">
+            <div><strong>{{ courseStudentName(s) }}</strong></div>
+            <div>{{ s.email || '-' }}</div>
+            <div>{{ s.entry_term_code || '-' }}</div>
+            <div><span v-if="s.term_number" class="muted">Term {{ s.term_number }}</span><span v-else class="muted">-</span></div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="closeCourseStudents">Close</button>
+        </div>
+      </div>
     </div>
 
     <div v-if="showCommentsModal" class="modal-overlay">
@@ -487,7 +527,7 @@
             <label>Students</label>
             <select v-model="editAssn.student_ids" multiple class="multi">
               <option v-for="s in students" :key="s.student_id" :value="String(s.student_id)">
-                {{ s.username }} (#{{ s.student_id }}) {{ s.entry_term_code ? `· ${s.entry_term_code}` : '' }}
+                {{ s.username }} {{ s.entry_term_code ? `· ${s.entry_term_code}` : '' }}
               </option>
             </select>
             <div class="hint">Hold Ctrl/Cmd to select multiple.</div>
@@ -506,9 +546,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import api, { apiBaseURL } from '../api/client'
+ import { ref, onMounted, computed } from 'vue'
+ import { useRouter } from 'vue-router'
+ import api, { apiBaseURL } from '../api/client'
+ import { docTypeLabel, fileFormatLabel, statusLabel, statusPillClass } from '../utils/docDisplay'
 
 const router = useRouter()
 const user = ref({})
@@ -573,6 +614,15 @@ const teachBusy = ref(false)
 const overviewMsg = ref('')
 const overviewOk = ref(true)
 
+// Course -> roster
+const showCourseStudentsModal = ref(false)
+const activeCourseCode = ref('')
+const courseStudents = ref([])
+const courseStudentsLoading = ref(false)
+const courseStudentsMsg = ref('')
+const courseStudentsOk = ref(true)
+const courseStudentsSearch = ref('')
+
 // Thesis/Project timeline
 const defenseWindowsLoading = ref(false)
 const defenseWindows = ref([])
@@ -611,46 +661,7 @@ onMounted(() => {
 
 const docUrl = (req) => `${apiBaseURL}/download_document.php?doc_id=${req.doc_id}`
 
-const docTypeLabel = (docType) => {
-  const raw = String(docType || '').trim()
-  if (!raw) return 'DOCUMENT'
-  const map = {
-    thesis_project: 'THESIS / PROJECT',
-    major_professor_form: 'MAJOR PROFESSOR FORM',
-    admission_letter: 'ADMISSION LETTER',
-    research_method_proof: 'RESEARCH METHOD',
-  }
-  return map[raw] || raw.replace(/_/g, ' ').toUpperCase()
-}
 
-const fileFormatLabel = (filePath) => {
-  const fp = String(filePath || '').trim()
-  const ext = fp.includes('.') ? fp.split('.').pop()?.toLowerCase() : ''
-  if (!ext) return '-'
-  const map = {
-    pdf: 'PDF',
-    doc: 'WORD',
-    docx: 'WORD',
-    jpg: 'JPG',
-    jpeg: 'JPG',
-    png: 'PNG',
-  }
-  return map[ext] || ext.toUpperCase()
-}
-
-const statusLabel = (status) => {
-  const s = String(status || '').trim().toLowerCase()
-  if (!s) return '-'
-  return s
-}
-
-const statusPillClass = (status) => {
-  const s = String(status || '').trim().toLowerCase()
-  if (s === 'approved') return 'st-approved'
-  if (s === 'pending') return 'st-pending'
-  if (s === 'rejected') return 'st-rejected'
-  return 'st-other'
-}
 
 const openBlob = (blob) => {
   const url = URL.createObjectURL(blob)
@@ -911,6 +922,63 @@ const removeTeachCourse = async (courseCode) => {
   } finally {
     teachBusy.value = false
   }
+}
+
+const courseStudentName = (s) => {
+  const first = String(s?.first_name || '').trim()
+  const last = String(s?.last_name || '').trim()
+  const full = `${first} ${last}`.trim()
+  return full || s?.username || 'Student'
+}
+
+const filteredCourseStudents = computed(() => {
+  const q = (courseStudentsSearch.value || '').trim().toLowerCase()
+  const rows = courseStudents.value || []
+  if (!q) return rows
+  return rows.filter((r) => {
+    const fields = [r.username, r.email, r.first_name, r.last_name, r.entry_term_code, String(r.term_number ?? '')]
+      .map((x) => String(x || '').toLowerCase())
+      .join(' ')
+    return fields.includes(q)
+  })
+})
+
+const refreshCourseStudents = async () => {
+  if (!activeCourseCode.value) return
+  courseStudentsLoading.value = true
+  courseStudentsMsg.value = ''
+  courseStudentsOk.value = true
+  try {
+    const res = await api.get(`faculty_get_course_students.php?course_code=${encodeURIComponent(activeCourseCode.value)}`)
+    if (res.data?.status === 'success') {
+      courseStudents.value = res.data.data || []
+    } else {
+      courseStudentsOk.value = false
+      courseStudentsMsg.value = res.data?.message || 'Failed to load students.'
+    }
+  } catch (e) {
+    courseStudentsOk.value = false
+    courseStudentsMsg.value = e?.response?.data?.message || 'Failed to load students.'
+  } finally {
+    courseStudentsLoading.value = false
+  }
+}
+
+const openCourseStudents = async (course) => {
+  activeCourseCode.value = String(course?.course_code || '')
+  courseStudents.value = []
+  courseStudentsSearch.value = ''
+  showCourseStudentsModal.value = true
+  await refreshCourseStudents()
+}
+
+const closeCourseStudents = () => {
+  showCourseStudentsModal.value = false
+  activeCourseCode.value = ''
+  courseStudents.value = []
+  courseStudentsSearch.value = ''
+  courseStudentsMsg.value = ''
+  courseStudentsOk.value = true
 }
 
 const fetchAssignments = async () => {
@@ -1454,7 +1522,10 @@ const logout = async () => {
   grid-template-columns: 0.6fr 1fr 1fr;
 }
 .table .row.thesis-row {
-  grid-template-columns: 1.5fr 0.7fr 0.9fr 0.9fr 1.2fr 1.6fr;
+  grid-template-columns: 1.4fr 0.6fr 0.7fr 0.9fr 0.9fr 1.1fr 1.4fr;
+}
+.table .row.roster-row {
+  grid-template-columns: 1.2fr 1.6fr 0.8fr 0.6fr;
 }
 .grade-box {
   display: flex;
