@@ -53,7 +53,17 @@ try {
             SELECT 1 FROM assignment_targets t
             WHERE t.assignment_id = a.id
               AND (
-                t.target_type = 'all'
+                (
+                    t.target_type = 'all'
+                    AND EXISTS (
+                        SELECT 1
+                        FROM student_details sd
+                        WHERE sd.student_id = :sid_adv
+                          AND sd.major_professor_id = a.created_by
+                          AND sd.mp_status <> 'none'
+                        LIMIT 1
+                    )
+                )
                 OR (t.target_type = 'student' AND t.target_value = :sid_target)
                 -- Backward compatibility: old cohort target
                 OR (t.target_type = 'cohort' AND t.target_value = :cohort)
@@ -75,6 +85,7 @@ try {
     // Avoid reusing the same named parameter multiple times (PDO MySQL may throw HY093).
     $stmt->bindParam(':sid_join', $studentId);
     $stmt->bindParam(':sid_target', $studentId);
+    $stmt->bindParam(':sid_adv', $studentId);
     $stmt->bindParam(':cohort', $cohort);
     $stmt->bindParam(':sid_course', $studentId);
     $stmt->execute();

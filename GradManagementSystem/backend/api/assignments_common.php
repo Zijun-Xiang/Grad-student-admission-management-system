@@ -112,12 +112,36 @@ function assignment_student_has_access(PDO $pdo, string $studentId, int $assignm
 {
     $entryTerm = get_student_entry_term_code($pdo, $studentId) ?: '';
 
+    static $hasStudentDetails = null;
+    if ($hasStudentDetails === null) {
+        try {
+            $hasStudentDetails = (bool)$pdo->query("SHOW TABLES LIKE 'student_details'")->fetchColumn();
+        } catch (Exception $e) {
+            $hasStudentDetails = false;
+        }
+    }
+
+    $allClause = $hasStudentDetails
+        ? "(
+             t.target_type = 'all'
+             AND EXISTS (
+                SELECT 1
+                FROM assignments a
+                JOIN student_details sd ON sd.student_id = :sid_adv
+                WHERE a.id = t.assignment_id
+                  AND sd.major_professor_id = a.created_by
+                  AND sd.mp_status <> 'none'
+                LIMIT 1
+             )
+           )"
+        : "t.target_type = 'all'";
+
     $stmt = $pdo->prepare(
         "SELECT 1
          FROM assignment_targets t
          WHERE t.assignment_id = :aid
            AND (
-             t.target_type = 'all'
+             $allClause
              OR (t.target_type = 'student' AND t.target_value = :sid)
              -- Backward compatibility: old cohort target
              OR (t.target_type = 'cohort' AND t.target_value = :cohort)
@@ -139,6 +163,9 @@ function assignment_student_has_access(PDO $pdo, string $studentId, int $assignm
     $stmt->bindParam(':sid', $studentId);
     $stmt->bindParam(':cohort', $entryTerm);
     $stmt->bindParam(':sid_course', $studentId);
+    if ($hasStudentDetails) {
+        $stmt->bindParam(':sid_adv', $studentId);
+    }
     $stmt->execute();
     return (bool)$stmt->fetchColumn();
 }

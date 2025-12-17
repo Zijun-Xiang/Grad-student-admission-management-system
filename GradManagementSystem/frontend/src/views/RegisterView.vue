@@ -33,7 +33,7 @@
           </div>
           <div class="form-group">
             <label>Entry Date</label>
-            <input v-model="entryDate" type="date" />
+            <DatePicker v-model="entryDate" locale="en-US" />
           </div>
         </div>
 
@@ -95,6 +95,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import DatePicker from '../components/DatePicker.vue'
 
 const router = useRouter()
 

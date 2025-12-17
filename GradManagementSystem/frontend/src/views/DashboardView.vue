@@ -127,29 +127,56 @@
                 <div class="status-item events-section">
                   <div class="events-head">
                     <h3 style="margin: 0">Events</h3>
-                    <button class="btn-secondary" @click="fetchEvents" :disabled="eventsLoading">Refresh</button>
+                    <label class="dismiss-all">
+                      <input type="checkbox" :disabled="eventsLoading || eventsBusyAll" @change="dismissAllEvents" />
+                      <span>Dismiss all</span>
+                    </label>
                   </div>
                   <div v-if="eventsMsg" class="msg" :class="{ ok: eventsOk, bad: !eventsOk }">{{ eventsMsg }}</div>
                   <div v-if="eventsLoading" class="loading-text">Loading events...</div>
                   <div v-else-if="events.length === 0" class="text-muted">No new events.</div>
                   <div v-else class="events-list">
-                    <label v-for="ev in events" :key="ev.id" class="event-item">
-                      <input
-                        type="checkbox"
-                        :disabled="eventsBusyId === String(ev.id)"
-                        @change="(e) => dismissEvent(ev, e)"
-                      />
-                      <div class="event-body">
-                        <div class="event-title">{{ ev.title }}</div>
-                        <div class="event-meta text-muted">
-                          <span v-if="ev.course_name || ev.course_code">Course: {{ ev.course_name || ev.course_code }} · </span>
-                          From: {{ ev.faculty_username || 'Faculty' }} · {{ ev.created_at }}
-                          <span v-if="ev.due_at"> · Due: {{ ev.due_at }}</span>
+                    <template v-for="ev in events" :key="`${ev.type || 'assignment'}-${ev.id}`">
+                      <label v-if="(ev.type || 'assignment') === 'assignment'" class="event-item">
+                        <input
+                          type="checkbox"
+                          :disabled="eventsBusyId === String(ev.id)"
+                          @change="(e) => dismissEvent(ev, e)"
+                        />
+                        <div class="event-body">
+                          <div class="event-title">{{ ev.title }}</div>
+                          <div class="event-meta text-muted">
+                            <span v-if="ev.course_name || ev.course_code">Course: {{ ev.course_name || ev.course_code }} · </span>
+                            From: {{ ev.faculty_username || 'Faculty' }} · {{ ev.created_at }}
+                            <span v-if="ev.due_at"> · Due: {{ ev.due_at }}</span>
+                          </div>
                         </div>
-                      </div>
-                    </label>
+                      </label>
+
+                      <label v-else class="event-item">
+                        <input
+                          type="checkbox"
+                          :disabled="eventsBusyId === `course-${ev.id}`"
+                          @change="(e) => dismissEvent(ev, e)"
+                        />
+                        <div class="event-body">
+                          <div class="event-title">{{ ev.title }}</div>
+                          <div class="event-meta text-muted">
+                            <span v-if="ev.course_name || ev.course_code">Course: {{ ev.course_name || ev.course_code }} · </span>
+                            From: {{ ev.faculty_username || 'Faculty' }} · {{ ev.created_at }}
+                          </div>
+                          <div v-if="ev.comment" class="event-meta text-muted" style="margin-top: 6px">Comment: {{ ev.comment }}</div>
+                          <div class="event-meta text-muted" style="margin-top: 6px">
+                            Go to <span class="link" @click.stop="router.push('/my-courses')">My Courses</span> to review/apply.
+                          </div>
+                        </div>
+                      </label>
+                    </template>
                   </div>
-                  <button class="btn-primary" style="margin-top: 12px" @click="router.push('/assignments')">Go to Assignments</button>
+                  <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap">
+                    <button v-if="hasAssignmentEvents" class="btn-primary" @click="router.push('/assignments')">Go to Assignments</button>
+                    <button v-if="hasCourseActionEvents" class="btn-primary" @click="router.push('/my-courses')">Go to My Courses</button>
+                  </div>
                 </div>
               </div>
 	          </div>
@@ -180,6 +207,10 @@ const eventsLoading = ref(false)
 const eventsMsg = ref('')
 const eventsOk = ref(true)
 const eventsBusyId = ref('')
+const eventsBusyAll = ref(false)
+
+const hasAssignmentEvents = computed(() => (events.value || []).some((e) => (e?.type || 'assignment') === 'assignment'))
+const hasCourseActionEvents = computed(() => (events.value || []).some((e) => (e?.type || 'assignment') === 'course_action'))
 
 const docByType = (type) => documents.value.find((d) => d.doc_type === type) || null
 const admissionStatus = computed(() => docByType('admission_letter')?.status || 'none')
@@ -296,11 +327,15 @@ const fetchEvents = async () => {
 const dismissEvent = async (ev, e) => {
   const checked = Boolean(e?.target?.checked)
   if (!checked) return
-  eventsBusyId.value = String(ev?.id || '')
+  const type = String(ev?.type || 'assignment')
+  eventsBusyId.value = type === 'assignment' ? String(ev?.id || '') : `course-${ev?.id || ''}`
   eventsMsg.value = ''
   eventsOk.value = true
   try {
-    const res = await api.post('student_mark_assignment_read.php', { assignment_id: ev.id })
+    const res =
+      type === 'assignment'
+        ? await api.post('student_mark_assignment_read.php', { assignment_id: ev.id })
+        : await api.post('student_mark_course_action_read.php', { action_id: ev.id })
     if (res.data?.status === 'success') {
       events.value = (events.value || []).filter((x) => x.id !== ev.id)
     } else {
@@ -314,6 +349,37 @@ const dismissEvent = async (ev, e) => {
     if (e?.target) e.target.checked = false
   } finally {
     eventsBusyId.value = ''
+  }
+}
+
+const dismissAllEvents = async (e) => {
+  const checked = Boolean(e?.target?.checked)
+  if (!checked) return
+  eventsBusyAll.value = true
+  eventsMsg.value = ''
+  eventsOk.value = true
+  try {
+    const list = Array.isArray(events.value) ? [...events.value] : []
+    for (const ev of list) {
+      const type = String(ev?.type || 'assignment')
+      try {
+        const res =
+          type === 'assignment'
+            ? await api.post('student_mark_assignment_read.php', { assignment_id: ev.id })
+            : await api.post('student_mark_course_action_read.php', { action_id: ev.id })
+        if (res.data?.status === 'success') {
+          events.value = (events.value || []).filter((x) => x.id !== ev.id)
+        }
+      } catch {
+        // ignore per-item
+      }
+    }
+  } catch (err) {
+    eventsOk.value = false
+    eventsMsg.value = err?.response?.data?.message || 'Failed.'
+  } finally {
+    eventsBusyAll.value = false
+    if (e?.target) e.target.checked = false
   }
 }
 
@@ -667,6 +733,19 @@ h2 {
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+}
+.dismiss-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  font-weight: 700;
+  color: #334155;
+}
+.dismiss-all input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 .events-list {
   display: flex;

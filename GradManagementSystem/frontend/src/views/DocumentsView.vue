@@ -30,7 +30,7 @@
             <div class="upload-panel">
               <h3>Admission Letter</h3>
               <p class="text-muted">Required for Term 1 hold release.</p>
-              <input type="file" @change="onAdmissionFileChange" accept=".pdf,.jpg,.png" />
+              <FilePicker @change="onAdmissionFileChange" accept=".pdf,.jpg,.png" />
               <button
                 class="btn-primary"
                 @click="uploadAdmission"
@@ -46,7 +46,7 @@
               <div v-if="!term?.unlocks?.term2" class="msg bad" style="margin: 10px 0 0">
                 Locked: available starting Term 2.
               </div>
-              <input type="file" @change="onMpFormFileChange" accept=".pdf,.jpg,.png" />
+              <FilePicker @change="onMpFormFileChange" accept=".pdf,.jpg,.png" :disabled="!term?.unlocks?.term2" />
               <button
                 class="btn-primary"
                 @click="uploadMpForm"
@@ -62,7 +62,7 @@
               <div v-if="!thesisUploadUnlocked" class="msg bad" style="margin: 10px 0 0">
                 Locked: available only in Term 3 and Term 4.
               </div>
-              <input type="file" @change="onThesisFileChange" :disabled="!thesisUploadUnlocked" accept=".pdf" />
+              <FilePicker @change="onThesisFileChange" :disabled="!thesisUploadUnlocked" accept=".pdf" />
               <button class="btn-primary" @click="uploadThesis" :disabled="!thesisUploadUnlocked || !thesisFile || uploadingThesis">
                 {{ uploadingThesis ? 'Uploading...' : 'Upload' }}
               </button>
@@ -77,8 +77,7 @@
               <div v-if="!researchMethodUploadUnlocked" class="msg bad" style="margin: 10px 0 0">
                 Locked: available starting Term 3.
               </div>
-              <input
-                type="file"
+              <FilePicker
                 @change="onResearchMethodFileChange"
                 :disabled="!researchMethodUploadUnlocked"
                 accept=".pdf,.jpg,.jpeg,.png"
@@ -161,7 +160,7 @@
         <div class="comment-meta" v-if="replaceDoc">
           <strong>{{ replaceDoc.doc_type }}</strong> · doc_id={{ replaceDoc.doc_id }}
         </div>
-        <input type="file" @change="onReplaceFileChange" :accept="replaceAccept" />
+        <FilePicker @change="onReplaceFileChange" :accept="replaceAccept" />
         <div v-if="replaceMsg" class="msg" :class="{ ok: replaceOk, bad: !replaceOk }">{{ replaceMsg }}</div>
         <div class="modal-actions">
           <button class="btn-cancel" @click="closeReplace">Cancel</button>
@@ -196,6 +195,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
 import { docTypeLabel, fileFormatLabel, statusLabel, statusPillClass } from '../utils/docDisplay'
+import FilePicker from '../components/FilePicker.vue'
 
 const router = useRouter()
 const user = ref({})
@@ -235,28 +235,34 @@ const researchMethodUploadUnlocked = computed(() => {
   return n >= 3
 })
 
-const onAdmissionFileChange = (e) => {
-  admissionFile.value = e?.target?.files?.[0] ?? null
+const normalizePickedFile = (arg) => {
+  if (!arg) return null
+  if (typeof File !== 'undefined' && arg instanceof File) return arg
+  return arg?.target?.files?.[0] ?? null
 }
 
-const onMpFormFileChange = (e) => {
-  mpFormFile.value = e?.target?.files?.[0] ?? null
+const onAdmissionFileChange = (arg) => {
+  admissionFile.value = normalizePickedFile(arg)
 }
 
-const onThesisFileChange = (e) => {
+const onMpFormFileChange = (arg) => {
+  mpFormFile.value = normalizePickedFile(arg)
+}
+
+const onThesisFileChange = (arg) => {
   if (!thesisUploadUnlocked.value) {
     thesisFile.value = null
     return
   }
-  thesisFile.value = e?.target?.files?.[0] ?? null
+  thesisFile.value = normalizePickedFile(arg)
 }
 
-const onResearchMethodFileChange = (e) => {
+const onResearchMethodFileChange = (arg) => {
   if (!researchMethodUploadUnlocked.value) {
     researchMethodFile.value = null
     return
   }
-  researchMethodFile.value = e?.target?.files?.[0] ?? null
+  researchMethodFile.value = normalizePickedFile(arg)
 }
 
 const fetchDocs = async () => {
@@ -473,8 +479,8 @@ const closeReplace = () => {
   replaceMsg.value = ''
 }
 
-const onReplaceFileChange = (e) => {
-  replaceFile.value = e?.target?.files?.[0] ?? null
+const onReplaceFileChange = (arg) => {
+  replaceFile.value = normalizePickedFile(arg)
 }
 
 const doReplace = async () => {

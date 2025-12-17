@@ -45,7 +45,17 @@ try {
                 FROM assignment_targets t
                 WHERE t.assignment_id = a.id
                   AND (
-                    t.target_type = 'all'
+                    (
+                        t.target_type = 'all'
+                        AND EXISTS (
+                            SELECT 1
+                            FROM student_details sd
+                            WHERE sd.student_id = :sid_adv
+                              AND sd.major_professor_id = a.created_by
+                              AND sd.mp_status <> 'none'
+                            LIMIT 1
+                        )
+                    )
                     OR (t.target_type = 'student' AND t.target_value = :sid_target)
                     OR (t.target_type = 'cohort' AND t.target_value = :cohort)
                     OR (
@@ -64,6 +74,7 @@ try {
     );
     $stmtCheck->bindValue(':aid', (int)$assignmentId, PDO::PARAM_INT);
     $stmtCheck->bindParam(':sid_target', $studentId);
+    $stmtCheck->bindParam(':sid_adv', $studentId);
     $stmtCheck->bindParam(':cohort', $cohort);
     $stmtCheck->bindParam(':sid_course', $studentId);
     $stmtCheck->execute();

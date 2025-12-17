@@ -99,6 +99,29 @@ try {
         }
     }
 
+    // For selected-students assignments, only allow targeting your advisees.
+    if ($targetMode === 'students') {
+        $hasSd = (bool)$pdo->query("SHOW TABLES LIKE 'student_details'")->fetchColumn();
+        if ($hasSd) {
+            $stmtAdv = $pdo->prepare(
+                "SELECT 1
+                 FROM student_details sd
+                 WHERE sd.student_id = :sid
+                   AND sd.major_professor_id = :fid
+                   AND sd.mp_status <> 'none'
+                 LIMIT 1"
+            );
+            foreach ($studentIds as $sid) {
+                $stmtAdv->bindParam(':sid', $sid);
+                $stmtAdv->bindParam(':fid', $facultyId);
+                $stmtAdv->execute();
+                if (!$stmtAdv->fetchColumn()) {
+                    send_json(['status' => 'error', 'message' => 'You can only publish to your own advisees (Selected Students).'], 403);
+                }
+            }
+        }
+    }
+
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare(

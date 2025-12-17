@@ -3,9 +3,9 @@
 /* frontend/src/assets/main.css */
 
 :root {
-  --primary-blue: #003366;       /* 学术深蓝 */
-  --secondary-blue: #0056b3;     /* 亮蓝 */
-  --bg-light: #f4f7fa;           /* 背景灰蓝 */
+  --primary-blue: #003366;       /* academic navy */
+  --secondary-blue: #0056b3;     /* bright blue */
+  --bg-light: #f4f7fa;           /* light background */
   --text-main: #2c3e50;
   --white: #ffffff;
 }
@@ -16,12 +16,12 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: var(--bg-light);
   color: var(--text-main);
-  /* 👇 关键修改：去掉之前的 flex, center 等代码，让页面能自然撑开 */
+  /* Removed old flex/center so pages can size naturally. */
   width: 100%;
   height: 100%;
 }
 
-/* 通用按钮样式 */
+/* Common button styles */
 .btn-primary {
   background-color: var(--primary-color);
   color: white;
@@ -38,14 +38,14 @@ body {
   background-color: var(--primary-hover);
 }
 
-/* 输入框通用样式 */
+/* Common input styles */
 input {
   width: 100%;
   padding: 10px;
   margin: 10px 0;
   border: 1px solid #ddd;
   border-radius: var(--border-radius);
-  box-sizing: border-box; /* 确保padding不会撑大盒子 */
+  box-sizing: border-box; /* avoid padding affecting width */
 }
 
 input:focus {

@@ -62,15 +62,17 @@ try {
         $courses = $stmtC->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Students list
+    // Students list (advisees only)
     $sdExists = table_exists($pdo, 'student_details');
     $sdCols = $sdExists ? table_columns($pdo, 'student_details') : [];
     $selectSd = '';
     $joinSd = '';
+    $whereAdv = '';
     if ($sdExists) {
         $joinSd = "LEFT JOIN student_details sd ON sd.student_id = u.user_id";
         if (in_array('first_name', $sdCols, true)) $selectSd .= ", sd.first_name";
         if (in_array('last_name', $sdCols, true)) $selectSd .= ", sd.last_name";
+        $whereAdv = "AND sd.major_professor_id = " . $pdo->quote($facultyId) . " AND sd.mp_status <> 'none'";
     }
 
     $stmtS = $pdo->query(
@@ -84,6 +86,7 @@ try {
          LEFT JOIN user_profiles up ON up.user_id = u.user_id
          $joinSd
          WHERE u.role = 'student'
+         $whereAdv
          ORDER BY u.username ASC, u.user_id ASC"
     );
     $students = $stmtS->fetchAll(PDO::FETCH_ASSOC);

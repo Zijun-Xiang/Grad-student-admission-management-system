@@ -27,6 +27,7 @@
         <div class="content-inner">
           <div class="card">
           <h2>Select Major Professor</h2>
+          <div v-if="msg" class="msg" :class="{ ok: msgOk, bad: !msgOk }">{{ msg }}</div>
 
           <div v-if="termNumber < 2" class="status-box pending">
             <h3>Locked</h3>
@@ -45,6 +46,13 @@
             <p>Please wait for their approval.</p>
           </div>
 
+          <div v-else-if="termNumber === 2 && !canSelectProfessor" class="status-box pending">
+            <h3>Action Required</h3>
+            <p>You must upload your <strong>Major Professor Form</strong> in <strong>Documents</strong> before selecting an advisor.</p>
+            <p v-if="mpFormStatus === 'rejected'" class="text-error">Your previous upload was rejected. Please re-upload.</p>
+            <button class="btn-primary" @click="router.push('/documents')">Go to Documents</button>
+          </div>
+
           <div v-else-if="termNumber >= 2" class="form-block">
             <div class="alert-box">You have a "Major Professor" Hold. Please select an advisor to proceed.</div>
 
@@ -57,7 +65,7 @@
                 </option>
               </select>
 
-              <button @click="submitRequest" class="btn-primary" :disabled="!selectedProf">Submit Request</button>
+              <button @click="submitRequest" class="btn-primary" :disabled="!selectedProf || !canSelectProfessor">Submit Request</button>
             </div>
           </div>
         </div>
@@ -87,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
 
@@ -103,6 +111,14 @@ const documents = ref([])
 
 const mpFormStatus = ref('none')
 const termNumber = ref(1)
+const msg = ref('')
+const msgOk = ref(true)
+
+const canSelectProfessor = computed(() => {
+  if (termNumber.value < 2) return false
+  if (termNumber.value === 2) return ['pending', 'approved'].includes(String(mpFormStatus.value || ''))
+  return true
+})
 
 onMounted(() => {
   const storedUser = localStorage.getItem('user')
@@ -146,18 +162,23 @@ const refreshMyStatus = async () => {
 }
 
 const submitRequest = async () => {
+  msg.value = ''
+  msgOk.value = true
   try {
     const res = await api.post('request_major_professor.php', { professor_id: selectedProf.value })
     if (res.data.status === 'success') {
-      alert('Request sent. Please wait for approval.')
+      msgOk.value = true
+      msg.value = res.data?.message || 'Request sent. Please wait for approval.'
       currentStatus.value = 'pending'
       const prof = facultyList.value.find((p) => p.user_id === selectedProf.value)
       professorName.value = prof ? prof.username : 'Unknown'
     } else {
-      alert(res.data.message || 'Request failed')
+      msgOk.value = false
+      msg.value = res.data.message || 'Request failed'
     }
   } catch (e) {
-    alert('Network Error')
+    msgOk.value = false
+    msg.value = e?.response?.data?.message || 'Network Error'
   }
 }
 
@@ -217,6 +238,22 @@ const logout = async () => {
   background-color: #e3f2fd;
   color: #003366;
   border-left: 4px solid #003366;
+}
+.msg {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 0 0 16px;
+  font-weight: 700;
+}
+.msg.ok {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+.msg.bad {
+  background: #fdebec;
+  border: 1px solid #f5c2c7;
+  color: #b4232c;
 }
 .content {
   flex: 1;

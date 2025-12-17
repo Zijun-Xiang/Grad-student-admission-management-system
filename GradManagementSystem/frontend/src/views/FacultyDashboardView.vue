@@ -12,24 +12,25 @@
       <aside class="sidebar">
         <nav>
           <ul>
-            <li :class="{ active: activeSection === 'research' }" @click="activeSection = 'research'">Research Hold</li>
+            <li :class="{ active: activeSection === 'research' }" @click="activeSection = 'research'">Research Hold &amp; MP Requests</li>
             <li :class="{ active: activeSection === 'overview' }" @click="activeSection = 'overview'">My Teaching</li>
             <li :class="{ active: activeSection === 'assignments' }" @click="activeSection = 'assignments'">Assignments</li>
             <li :class="{ active: activeSection === 'docs' }" @click="activeSection = 'docs'">Advisee Docs</li>
             <li :class="{ active: activeSection === 'thesis' }" @click="activeSection = 'thesis'">Thesis / Project</li>
-            <li :class="{ active: activeSection === 'mp' }" @click="activeSection = 'mp'">MP Requests</li>
             <li :class="{ active: activeSection === 'profile' }" @click="openProfile">Profile</li>
           </ul>
         </nav>
       </aside>
 
       <main class="content">
-        <div v-if="activeSection === 'research'" class="card mb-30">
-          <h2>Research Method Hold Check (Term 3)</h2>
-          <p class="subtitle">
-            You can lift the <strong>research_method</strong> hold only after the student has registered/taken the Research Method course.
-          </p>
-          <div v-if="researchMsg" class="msg" :class="{ ok: researchOk, bad: !researchOk }">{{ researchMsg }}</div>
+        <div v-if="portalMsg" class="msg" :class="{ ok: portalOk, bad: !portalOk }">{{ portalMsg }}</div>
+        <div v-if="activeSection === 'research'" class="stack">
+          <div class="card mb-30">
+            <h2>Research Method Hold Check (Term 3)</h2>
+            <p class="subtitle">
+              You can lift the <strong>research_method</strong> hold only after the student has registered/taken the Research Method course.
+            </p>
+            <div v-if="researchMsg" class="msg" :class="{ ok: researchOk, bad: !researchOk }">{{ researchMsg }}</div>
 
             <div v-if="holdsLoading" class="loading-text">Loading...</div>
             <div v-else-if="researchHolds.length === 0" class="empty-state">No active research_method holds for your advisees.</div>
@@ -94,6 +95,26 @@
             </div>
           </div>
 
+          <div class="card">
+            <h2>Major Professor Requests</h2>
+            <p class="subtitle">Students requesting you as their advisor.</p>
+
+            <div v-if="mpRequests.length === 0" class="empty-state">No new advising requests.</div>
+            <div v-else class="review-list">
+              <div v-for="stu in mpRequests" :key="stu.student_id" class="review-item highlight-item">
+                <div class="info">
+                  <span class="student-name">{{ displayStudentName(stu) }}</span>
+                  <span class="email-text">{{ stu.email }}</span>
+                </div>
+                <div class="actions">
+                  <button @click="respondMP(stu, 'reject')" class="btn-reject">Decline</button>
+                  <button @click="respondMP(stu, 'accept')" class="btn-approve">Accept Student</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div v-else-if="activeSection === 'overview'" class="stack">
           <div class="card mb-30">
             <h2>My Teaching Courses</h2>
@@ -103,13 +124,18 @@
             <div v-else-if="overviewMsg" class="msg" :class="{ ok: overviewOk, bad: !overviewOk }">{{ overviewMsg }}</div>
 
             <div class="form-row">
+              <input v-model="teachCourseSearch" class="select" type="text" placeholder="Search courses..." />
               <select v-model="selectedTeachCourse" class="select">
                 <option disabled value="">-- Select a course to add --</option>
-                <option v-for="c in allCourses" :key="c.course_code" :value="c.course_code">
+                <option v-for="c in filteredAllCourses" :key="c.course_code" :value="c.course_code">
                   {{ c.course_code }} · {{ c.course_name }} ({{ c.credits }})
                 </option>
               </select>
-              <button class="btn-approve" @click="addTeachCourse" :disabled="!selectedTeachCourse || !facultyCoursesEnabled || teachBusy">
+              <button
+                class="btn-approve"
+                @click="addTeachCourse"
+                :disabled="!selectedTeachCourse || !facultyCoursesEnabled || teachBusy"
+              >
                 {{ teachBusy ? 'Working...' : 'Add' }}
               </button>
             </div>
@@ -147,6 +173,7 @@
                 <div>Email</div>
                 <div>Cohort</div>
                 <div>Status</div>
+                <div></div>
               </div>
               <div v-for="s in filteredAdvisees" :key="s.student_id" class="row">
                 <div>
@@ -155,6 +182,9 @@
                 <div>{{ s.student_email || '-' }}</div>
                 <div>{{ s.entry_term_code || '-' }}</div>
                 <div>{{ s.mp_status }}</div>
+                <div class="actions">
+                  <button class="btn-view" @click="openAdviseeCourses(s)" :disabled="teachBusy">Courses</button>
+                </div>
               </div>
             </div>
           </div>
@@ -180,7 +210,7 @@
               <div class="form-group">
                 <label>Target</label>
                 <select v-model="assnForm.target_mode">
-                  <option value="all">All Students</option>
+                  <option value="all">All Advisees</option>
                   <option value="course" :disabled="!assignmentCoursesEnabled || assignmentCourses.length === 0">Course</option>
                   <option value="students">Selected Students</option>
                 </select>
@@ -211,7 +241,7 @@
 
               <div class="form-group full">
                 <label>Attachment (optional)</label>
-                <input type="file" @change="onAssnFileChange" />
+                <FilePicker @change="onAssnFileChange" />
               </div>
             </div>
 
@@ -458,22 +488,8 @@
         </div>
 
         <div v-else class="card">
-          <h2>Major Professor Requests</h2>
-          <p class="subtitle">Students requesting you as their advisor.</p>
-
-          <div v-if="mpRequests.length === 0" class="empty-state">No new advising requests.</div>
-          <div v-else class="review-list">
-              <div v-for="stu in mpRequests" :key="stu.student_id" class="review-item highlight-item">
-                <div class="info">
-                  <span class="student-name">{{ displayStudentName(stu) }}</span>
-                  <span class="email-text">{{ stu.email }}</span>
-                </div>
-                <div class="actions">
-                  <button @click="respondMP(stu, 'reject')" class="btn-reject">Decline</button>
-                <button @click="respondMP(stu, 'accept')" class="btn-approve">Accept Student</button>
-              </div>
-            </div>
-          </div>
+          <h2>Faculty Portal</h2>
+          <p class="subtitle">Select a section from the sidebar.</p>
         </div>
       </main>
     </div>
@@ -510,6 +526,119 @@
 
         <div class="modal-actions">
           <button class="btn-cancel" @click="closeCourseStudents">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showAdviseeCoursesModal" class="modal-overlay">
+      <div class="modal-box wide-modal">
+        <h3>Advisee Course Registrations</h3>
+        <div class="comment-meta" v-if="activeAdvisee">
+          <strong>{{ displayAdviseeName(activeAdvisee) }}</strong>
+          <span v-if="activeAdvisee?.entry_term_code" class="muted"> · {{ activeAdvisee.entry_term_code }}</span>
+        </div>
+
+        <div class="form-row" style="margin: 6px 0 0">
+          <input v-model="adviseeCoursesSearch" class="select" type="text" placeholder="Search courses..." />
+          <button class="btn-view" @click="refreshAdviseeCourses" :disabled="adviseeCoursesLoading">Refresh</button>
+        </div>
+
+        <div v-if="adviseeCoursesMsg" class="msg" :class="{ ok: adviseeCoursesOk, bad: !adviseeCoursesOk }">{{ adviseeCoursesMsg }}</div>
+        <div v-if="adviseeCoursesLoading" class="loading-text">Loading...</div>
+        <div v-else-if="filteredAdviseeCourses.length === 0" class="empty-state">No registered courses.</div>
+        <div v-else class="table mt-20 table-scroll">
+          <div class="row header advisee-course-row">
+            <div>Course</div>
+            <div>Name</div>
+            <div>Credits</div>
+            <div>Type</div>
+            <div>Registered</div>
+          </div>
+          <div v-for="c in filteredAdviseeCourses" :key="c.course_code" class="row advisee-course-row">
+            <div><strong>{{ c.course_code }}</strong></div>
+            <div>{{ c.course_name || '-' }}</div>
+            <div>{{ c.credits ?? '-' }}</div>
+            <div>
+              <span v-if="Number(c.is_deficiency)" class="muted">Deficiency</span>
+              <span v-else class="muted">-</span>
+            </div>
+            <div><span class="muted">{{ c.registered_at || '-' }}</span></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px; padding: 16px">
+          <h4 style="margin: 0 0 10px">Request Course Add/Drop (Student Applies)</h4>
+          <div v-if="adviseeActionMsg" class="msg" :class="{ ok: adviseeActionOk, bad: !adviseeActionOk }">{{ adviseeActionMsg }}</div>
+
+          <div class="form-row">
+            <select v-model="adviseeActionForm.action_type" class="select" style="max-width: 160px">
+              <option value="add">Add</option>
+              <option value="drop">Drop</option>
+            </select>
+
+            <select v-if="adviseeActionForm.action_type === 'add'" v-model="adviseeActionForm.course_code" class="select">
+              <option disabled value="">-- Select course --</option>
+              <option v-for="c in availableAdviseeAddCourses" :key="c.course_code" :value="c.course_code">
+                {{ c.course_code }}{{ c.course_name ? ` · ${c.course_name}` : '' }}
+              </option>
+            </select>
+
+            <select v-else v-model="adviseeActionForm.course_code" class="select" :disabled="adviseeCourses.length === 0">
+              <option disabled value="">-- Select registered course --</option>
+              <option v-for="c in adviseeCourses" :key="c.course_code" :value="c.course_code">
+                {{ c.course_code }}{{ c.course_name ? ` · ${c.course_name}` : '' }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <input v-model="adviseeActionForm.comment" class="select" type="text" placeholder="Optional comment to student..." />
+            <button
+              class="btn-approve"
+              @click="sendAdviseeCourseAction"
+              :disabled="adviseeActionBusy || !adviseeActionForm.course_code || !activeAdvisee"
+              style="max-width: 160px"
+            >
+              {{ adviseeActionBusy ? 'Sending...' : 'Send Request' }}
+            </button>
+          </div>
+
+          <div style="margin-top: 10px">
+            <strong>Recent Requests</strong>
+          </div>
+          <div v-if="adviseeActionsLoading" class="loading-text">Loading requests...</div>
+          <div v-else-if="adviseeActions.length === 0" class="empty-state">No requests yet.</div>
+          <div v-else class="review-list" style="margin-top: 10px">
+            <div v-for="a in adviseeActions" :key="a.id" class="review-item">
+              <div class="info">
+                <span class="student-name">
+                  {{ a.action_type === 'add' ? 'ADD' : 'DROP' }} · {{ a.course_code }}{{ a.course_name ? ` · ${a.course_name}` : '' }}
+                </span>
+                <div class="doc-meta-row">
+                  <span class="doc-status-pill" :class="statusPillClass(a.status)">{{ statusLabel(a.status) }}</span>
+                  <span class="muted">· {{ a.created_at }}</span>
+                </div>
+                <div v-if="a.comment" class="muted" style="margin-top: 6px">Comment: {{ a.comment }}</div>
+              </div>
+              <div class="actions">
+                <button
+                  v-if="a.status === 'pending'"
+                  class="btn-reject"
+                  @click="cancelAdviseeCourseAction(a)"
+                  :disabled="adviseeActionBusy"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <div class="muted" style="margin-right: auto">
+            Total credits: <strong>{{ adviseeCoursesTotalCredits }}</strong>
+          </div>
+          <button class="btn-cancel" @click="closeAdviseeCourses">Close</button>
         </div>
       </div>
     </div>
@@ -653,12 +782,20 @@
  import { useRouter } from 'vue-router'
  import api, { apiBaseURL } from '../api/client'
  import { docTypeLabel, fileFormatLabel, statusLabel, statusPillClass } from '../utils/docDisplay'
+ import FilePicker from '../components/FilePicker.vue'
 
 const router = useRouter()
 const user = ref({})
 const activeSection = ref('research')
 const mpRequests = ref([])
 const adviseeDocs = ref([])
+
+const portalMsg = ref('')
+const portalOk = ref(true)
+const setPortal = (ok, msg) => {
+  portalOk.value = Boolean(ok)
+  portalMsg.value = String(msg || '')
+}
 
 // Profile
 const profileLoading = ref(false)
@@ -726,6 +863,7 @@ const advisees = ref([])
 const adviseeSearch = ref('')
 const allCourses = ref([])
 const selectedTeachCourse = ref('')
+const teachCourseSearch = ref('')
 const teachBusy = ref(false)
 const overviewMsg = ref('')
 const overviewOk = ref(true)
@@ -738,6 +876,23 @@ const courseStudentsLoading = ref(false)
 const courseStudentsMsg = ref('')
 const courseStudentsOk = ref(true)
 const courseStudentsSearch = ref('')
+
+// Advisee -> course registrations
+const showAdviseeCoursesModal = ref(false)
+const activeAdvisee = ref(null)
+const adviseeCoursesLoading = ref(false)
+const adviseeCourses = ref([])
+const adviseeCoursesTotalCredits = ref(0)
+const adviseeCoursesSearch = ref('')
+const adviseeCoursesMsg = ref('')
+const adviseeCoursesOk = ref(true)
+const adviseeCourseOptions = ref([])
+const adviseeActions = ref([])
+const adviseeActionsLoading = ref(false)
+const adviseeActionForm = ref({ action_type: 'add', course_code: '', comment: '' })
+const adviseeActionBusy = ref(false)
+const adviseeActionMsg = ref('')
+const adviseeActionOk = ref(true)
 
 // Thesis/Project timeline
 const defenseWindowsLoading = ref(false)
@@ -1024,13 +1179,14 @@ const liftResearchHold = async (h) => {
   try {
     const res = await api.post('faculty_lift_research_method_hold.php', { student_id: h.student_id })
     if (res.data?.status === 'success') {
-      alert(`Hold lifted. Registrar code: ${res.data.registrar_code || '(none)'}`)
+      const extra = res.data?.registrar_code ? ` Registrar code: ${res.data.registrar_code}` : ''
+      setPortal(true, `${res.data?.message || 'Hold lifted.'}${extra}`)
       await fetchResearchMethodHolds()
     } else {
-      alert(res.data?.message || 'Lift failed')
+      setPortal(false, res.data?.message || 'Lift failed')
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Network Error')
+    setPortal(false, e?.response?.data?.message || 'Network Error')
   } finally {
     busyStudentId.value = ''
   }
@@ -1134,19 +1290,49 @@ const filteredAdvisees = computed(() => {
     })
 })
 
+const filteredAllCourses = computed(() => {
+  const q = String(teachCourseSearch.value || '').trim().toLowerCase()
+  const list = Array.isArray(allCourses.value) ? allCourses.value : []
+  if (!q) return list
+  return list.filter((c) => {
+    const code = String(c?.course_code || '').toLowerCase()
+    const name = String(c?.course_name || '').toLowerCase()
+    return code.includes(q) || name.includes(q)
+  })
+})
+
+const filteredAdviseeCourses = computed(() => {
+  const q = adviseeCoursesSearch.value.trim().toLowerCase()
+  const list = Array.isArray(adviseeCourses.value) ? adviseeCourses.value : []
+  if (!q) return list
+  return list.filter((c) => {
+    const code = String(c?.course_code || '').toLowerCase()
+    const name = String(c?.course_name || '').toLowerCase()
+    return code.includes(q) || name.includes(q)
+  })
+})
+
+const availableAdviseeAddCourses = computed(() => {
+  const registered = new Set((adviseeCourses.value || []).map((c) => String(c?.course_code || '').toUpperCase()))
+  return (adviseeCourseOptions.value || []).filter((c) => !registered.has(String(c?.course_code || '').toUpperCase()))
+})
+
 const addTeachCourse = async () => {
   if (!selectedTeachCourse.value) return
   teachBusy.value = true
   try {
     const res = await api.post('faculty_add_teaching_course.php', { course_code: selectedTeachCourse.value })
     if (res.data?.status === 'success') {
+      setPortal(true, res.data?.message || 'Course added.')
       selectedTeachCourse.value = ''
+      teachCourseSearch.value = ''
       await fetchOverview()
     } else {
-      alert(res.data?.message || 'Failed')
+      setPortal(false, res.data?.message || 'Failed')
     }
+    await fetchOverview()
   } catch (e) {
-    alert(e?.response?.data?.message || 'Failed')
+    setPortal(false, e?.response?.data?.message || 'Failed')
   } finally {
     teachBusy.value = false
   }
@@ -1157,12 +1343,13 @@ const removeTeachCourse = async (courseCode) => {
   try {
     const res = await api.post('faculty_remove_teaching_course.php', { course_code: courseCode })
     if (res.data?.status === 'success') {
+      setPortal(true, res.data?.message || 'Course removed.')
       await fetchOverview()
     } else {
-      alert(res.data?.message || 'Failed')
+      setPortal(false, res.data?.message || 'Failed')
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Failed')
+    setPortal(false, e?.response?.data?.message || 'Failed')
   } finally {
     teachBusy.value = false
   }
@@ -1225,6 +1412,139 @@ const closeCourseStudents = () => {
   courseStudentsOk.value = true
 }
 
+const closeAdviseeCourses = () => {
+  showAdviseeCoursesModal.value = false
+  activeAdvisee.value = null
+  adviseeCourses.value = []
+  adviseeCoursesTotalCredits.value = 0
+  adviseeCoursesSearch.value = ''
+  adviseeCoursesMsg.value = ''
+  adviseeCoursesOk.value = true
+  adviseeCourseOptions.value = []
+  adviseeActions.value = []
+  adviseeActionsLoading.value = false
+  adviseeActionForm.value = { action_type: 'add', course_code: '', comment: '' }
+  adviseeActionBusy.value = false
+  adviseeActionMsg.value = ''
+  adviseeActionOk.value = true
+}
+
+const fetchAdviseeCourseOptions = async () => {
+  const sid = activeAdvisee.value?.student_id
+  if (!sid) return
+  try {
+    const res = await api.get(`faculty_get_advisee_course_options.php?student_id=${encodeURIComponent(String(sid))}`)
+    if (res.data?.status === 'success') adviseeCourseOptions.value = res.data.data || []
+  } catch {
+    // ignore
+  }
+}
+
+const fetchAdviseeCourseActions = async () => {
+  const sid = activeAdvisee.value?.student_id
+  if (!sid) return
+  adviseeActionsLoading.value = true
+  try {
+    const res = await api.get(`faculty_list_advisee_course_actions.php?student_id=${encodeURIComponent(String(sid))}`)
+    if (res.data?.status === 'success') adviseeActions.value = res.data.data || []
+  } catch {
+    // ignore
+  } finally {
+    adviseeActionsLoading.value = false
+  }
+}
+
+const sendAdviseeCourseAction = async () => {
+  const sid = activeAdvisee.value?.student_id
+  if (!sid) return
+  if (!adviseeActionForm.value.course_code) return
+  adviseeActionBusy.value = true
+  adviseeActionMsg.value = ''
+  adviseeActionOk.value = true
+  try {
+    const res = await api.post('faculty_create_advisee_course_action.php', {
+      student_id: sid,
+      action_type: adviseeActionForm.value.action_type,
+      course_code: adviseeActionForm.value.course_code,
+      comment: adviseeActionForm.value.comment,
+    })
+    if (res.data?.status === 'success') {
+      adviseeActionOk.value = true
+      adviseeActionMsg.value = res.data?.message || 'Sent.'
+      adviseeActionForm.value.comment = ''
+      adviseeActionForm.value.course_code = ''
+      await fetchAdviseeCourseActions()
+    } else {
+      adviseeActionOk.value = false
+      adviseeActionMsg.value = res.data?.message || 'Failed.'
+    }
+  } catch (e) {
+    adviseeActionOk.value = false
+    adviseeActionMsg.value = e?.response?.data?.message || 'Failed.'
+  } finally {
+    adviseeActionBusy.value = false
+  }
+}
+
+const cancelAdviseeCourseAction = async (a) => {
+  if (!a?.id) return
+  adviseeActionBusy.value = true
+  adviseeActionMsg.value = ''
+  adviseeActionOk.value = true
+  try {
+    const res = await api.post('faculty_cancel_advisee_course_action.php', { action_id: a.id })
+    if (res.data?.status === 'success') {
+      adviseeActionOk.value = true
+      adviseeActionMsg.value = res.data?.message || 'Cancelled.'
+      await fetchAdviseeCourseActions()
+    } else {
+      adviseeActionOk.value = false
+      adviseeActionMsg.value = res.data?.message || 'Failed.'
+    }
+  } catch (e) {
+    adviseeActionOk.value = false
+    adviseeActionMsg.value = e?.response?.data?.message || 'Failed.'
+  } finally {
+    adviseeActionBusy.value = false
+  }
+}
+
+const refreshAdviseeCourses = async () => {
+  const sid = activeAdvisee.value?.student_id
+  if (!sid) return
+
+  adviseeCoursesLoading.value = true
+  adviseeCoursesMsg.value = ''
+  adviseeCoursesOk.value = true
+  try {
+    const uname = String(activeAdvisee.value?.student_username || '').trim()
+    const extra = uname ? `&username=${encodeURIComponent(uname)}` : ''
+    const res = await api.get(`faculty_get_advisee_courses.php?student_id=${encodeURIComponent(String(sid))}${extra}`)
+    if (res.data?.status === 'success') {
+      adviseeCourses.value = res.data.data || []
+      adviseeCoursesTotalCredits.value = Number(res.data.total_credits || 0)
+    } else {
+      adviseeCoursesOk.value = false
+      adviseeCoursesMsg.value = res.data?.message || 'Failed to load courses.'
+    }
+  } catch (e) {
+    adviseeCoursesOk.value = false
+    adviseeCoursesMsg.value = e?.response?.data?.message || 'Failed to load courses.'
+  } finally {
+    adviseeCoursesLoading.value = false
+  }
+}
+
+const openAdviseeCourses = async (stu) => {
+  activeAdvisee.value = stu
+  adviseeCourses.value = []
+  adviseeCoursesTotalCredits.value = 0
+  adviseeCoursesSearch.value = ''
+  adviseeActionForm.value = { action_type: 'add', course_code: '', comment: '' }
+  showAdviseeCoursesModal.value = true
+  await Promise.all([refreshAdviseeCourses(), fetchAdviseeCourseOptions(), fetchAdviseeCourseActions()])
+}
+
 const fetchAssignments = async () => {
   assignmentsLoading.value = true
   try {
@@ -1238,7 +1558,8 @@ const fetchAssignments = async () => {
 }
 
 const onAssnFileChange = (e) => {
-  assnFile.value = e?.target?.files?.[0] ?? null
+  const f = e && typeof File !== 'undefined' && e instanceof File ? e : e?.target?.files?.[0] ?? null
+  assnFile.value = f
 }
 
 const createAssignment = async () => {
@@ -1297,7 +1618,7 @@ const createAssignment = async () => {
 
 const summarizeTargets = (targets) => {
   const t = targets || []
-  if (t.some((x) => x.target_type === 'all')) return 'Target: All students'
+  if (t.some((x) => x.target_type === 'all')) return 'Target: All advisees'
   const course = t.find((x) => x.target_type === 'course')?.target_value
   if (course) {
     const name = courseLabel(course)
@@ -1490,10 +1811,10 @@ const saveEditAssignment = async () => {
 }
 
 const deleteAssignment = async (a) => {
-  if (!confirm(`Delete assignment "${a.title}" (#${a.id})? This will also delete submissions.`)) return
   try {
     const res = await api.post('faculty_delete_assignment.php', { assignment_id: a.id })
     if (res.data?.status === 'success') {
+      setPortal(true, res.data?.message || 'Deleted.')
       await fetchAssignments()
       if (selectedAssignment.value?.id === a.id) {
         selectedAssignment.value = null
@@ -1501,10 +1822,10 @@ const deleteAssignment = async (a) => {
         submissionsError.value = ''
       }
     } else {
-      alert(res.data?.message || 'Delete failed')
+      setPortal(false, res.data?.message || 'Delete failed')
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Delete failed')
+    setPortal(false, e?.response?.data?.message || 'Delete failed')
   }
 }
 
@@ -1550,7 +1871,7 @@ const downloadAssignment = async (a) => {
     const res = await api.get(`download_assignment_file.php?assignment_id=${a.id}`, { responseType: 'blob' })
     openBlob(res.data)
   } catch (e) {
-    alert('Download failed')
+    setPortal(false, 'Download failed')
   }
 }
 
@@ -1560,7 +1881,7 @@ const downloadSubmission = async (r) => {
     const res = await api.get(`download_assignment_submission.php?submission_id=${r.submission_id}`, { responseType: 'blob' })
     openBlob(res.data)
   } catch (e) {
-    alert('Download failed')
+    setPortal(false, 'Download failed')
   }
 }
 
@@ -1598,10 +1919,10 @@ const submitSubComment = async () => {
       await openSubmissionComments(activeSubmission.value)
       await openAssignment(selectedAssignment.value)
     } else {
-      alert(res.data?.message || 'Failed to post comment')
+      setPortal(false, res.data?.message || 'Failed to post comment')
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Failed to post comment')
+    setPortal(false, e?.response?.data?.message || 'Failed to post comment')
   } finally {
     subCommentSubmitting.value = false
   }
@@ -1613,17 +1934,16 @@ const displayStudentName = (stu) => {
 }
 
 const respondMP = async (stu, action) => {
-  if (!confirm(`Are you sure you want to ${action.toUpperCase()} ${displayStudentName(stu)}?`)) return
   try {
     const res = await api.post('faculty_respond_mp.php', { student_id: stu.student_id, action })
     if (res.data.status === 'success') {
-      alert('Success: ' + res.data.message)
+      setPortal(true, res.data?.message || 'Saved.')
       fetchMPRequests()
     } else {
-      alert(res.data.message || 'Failed')
+      setPortal(false, res.data?.message || 'Failed')
     }
   } catch (e) {
-    alert('Network Error')
+    setPortal(false, 'Network Error')
   }
 }
 
@@ -1636,9 +1956,9 @@ const openComments = async (doc) => {
   try {
     const res = await api.get(`document_comments_list.php?doc_id=${doc.doc_id}`)
     if (res.data.status === 'success') comments.value = res.data.data || []
-    else alert(res.data.message || 'Failed to load comments')
+    else setPortal(false, res.data.message || 'Failed to load comments')
   } catch (e) {
-    alert(e?.response?.data?.message || 'Failed to load comments')
+    setPortal(false, e?.response?.data?.message || 'Failed to load comments')
   } finally {
     commentsLoading.value = false
   }
@@ -1663,10 +1983,10 @@ const submitComment = async () => {
       newComment.value = ''
       await openComments(activeDoc.value)
     } else {
-      alert(res.data.message || 'Failed to post comment')
+      setPortal(false, res.data.message || 'Failed to post comment')
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Failed to post comment')
+    setPortal(false, e?.response?.data?.message || 'Failed to post comment')
   } finally {
     commentSubmitting.value = false
   }
@@ -1819,6 +2139,23 @@ const logout = async () => {
 .table .row.roster-row {
   grid-template-columns: 1.2fr 1.6fr 0.8fr 0.6fr;
 }
+.table .row.advisee-course-row {
+  grid-template-columns: 0.8fr 1.6fr 0.6fr 0.8fr 1fr;
+}
+.table-scroll {
+  overflow: auto;
+  max-height: 46vh;
+  padding-bottom: 14px; /* keep last row visible above overlay scrollbars */
+  scrollbar-gutter: stable;
+}
+.table-scroll .row {
+  min-width: 720px;
+}
+.table-scroll .row.header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
 .grade-box {
   display: flex;
   gap: 8px;
@@ -1963,7 +2300,9 @@ const logout = async () => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding: 24px 16px;
+  overflow-y: auto;
   z-index: 1000;
 }
 .modal-box {
@@ -1975,6 +2314,8 @@ const logout = async () => {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 .wide-modal {
   max-width: 600px;
@@ -1990,6 +2331,10 @@ const logout = async () => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding-top: 10px;
 }
 .btn-cancel {
   background: #fff;

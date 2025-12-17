@@ -86,20 +86,20 @@
 
                   <div class="form-group">
                     <label>Defense Date</label>
-                    <input
+                    <DatePicker
                       v-model="form.defense_date"
-                      type="date"
-                      :min="selectedWindow?.start_date || undefined"
-                      :max="selectedWindow?.end_date || undefined"
+                      locale="en-US"
+                      :min="selectedWindow?.start_date || ''"
+                      :max="selectedWindow?.end_date || ''"
                       :disabled="!selectedWindow || !isEditable"
                     />
                   </div>
                   <div class="form-group">
                     <label>Submission Date</label>
-                    <input
+                    <DatePicker
                       v-model="form.submission_date"
-                      type="date"
-                      :max="maxSubmissionDate || undefined"
+                      locale="en-US"
+                      :max="maxSubmissionDate || ''"
                       :disabled="!form.defense_date || !isEditable"
                     />
                     <div class="hint text-muted" v-if="maxSubmissionDate">
@@ -147,6 +147,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import DatePicker from '../components/DatePicker.vue'
 
 const router = useRouter()
 const user = ref({})
@@ -208,6 +209,9 @@ watch(
     const y = v.slice(0, 4)
     if (y && y !== selectedYear.value && availableYears.value.includes(Number(y))) {
       selectedYear.value = y
+    }
+    if (form.value.submission_date && maxSubmissionDate.value && form.value.submission_date > maxSubmissionDate.value) {
+      form.value.submission_date = ''
     }
   },
 )

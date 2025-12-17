@@ -66,6 +66,70 @@
               {{ actionMessage }}
             </div>
 
+            <div class="advisor-card">
+              <div class="advisor-head">
+                <h3 style="margin: 0">Advisor Course Requests</h3>
+                <button class="btn-secondary" @click="fetchAdvisorActions" :disabled="advisorActionsLoading">Refresh</button>
+              </div>
+              <div v-if="advisorActionsMsg" class="msg" :class="{ ok: advisorActionsOk, bad: !advisorActionsOk }">
+                {{ advisorActionsMsg }}
+              </div>
+              <div v-if="advisorActionsLoading" class="loading-text">Loading advisor requests...</div>
+              <div v-else-if="advisorPending.length === 0" class="text-muted">No pending advisor requests.</div>
+              <div v-else class="events-list" style="margin-top: 10px">
+                <div v-for="a in advisorPending" :key="a.id" class="event-item">
+                  <input
+                    type="checkbox"
+                    :disabled="advisorBusyId === String(a.id)"
+                    @change="(e) => applyAdvisorAction(a, e)"
+                    :title="'Apply'"
+                  />
+                  <div class="event-body">
+                    <div class="event-title">
+                      {{ a.action_type === 'add' ? 'Add' : 'Drop' }}:
+                      {{ a.course_code }}{{ a.course_name ? ` · ${a.course_name}` : '' }}
+                    </div>
+                    <div class="event-meta text-muted">
+                      From: {{ a.faculty_username || 'Faculty' }} · {{ a.created_at }}
+                    </div>
+                    <div v-if="a.comment" class="text-muted" style="margin-top: 6px">Advisor comment: {{ a.comment }}</div>
+                    <div class="form-row" style="margin-top: 10px">
+                      <input
+                        v-model="advisorRejectNotes[a.id]"
+                        class="select"
+                        type="text"
+                        placeholder="Optional reply when rejecting..."
+                        :disabled="advisorBusyId === String(a.id)"
+                      />
+                      <button class="btn-drop" @click="rejectAdvisorAction(a)" :disabled="advisorBusyId === String(a.id)">
+                        {{ advisorBusyId === String(a.id) ? 'Working...' : 'Reject' }}
+                      </button>
+                    </div>
+                    <div class="text-muted" style="margin-top: 6px">Check the box to accept and apply the change.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="advisorHistory.length > 0" style="margin-top: 14px">
+                <div class="text-muted" style="font-weight: 700">Recent Applied</div>
+                <div class="events-list" style="margin-top: 8px">
+                  <div v-for="h in advisorHistory" :key="`h-${h.id}`" class="event-item" style="cursor: default">
+                    <div class="event-body" style="margin-left: 0">
+                      <div class="event-title">
+                        {{ h.action_type === 'add' ? 'Added' : 'Dropped' }}:
+                        {{ h.course_code }}{{ h.course_name ? ` · ${h.course_name}` : '' }}
+                      </div>
+                      <div class="event-meta text-muted">
+                        From: {{ h.faculty_username || 'Faculty' }} · {{ h.created_at }}
+                        <span v-if="h.applied_at"> · Applied: {{ h.applied_at }}</span>
+                      </div>
+                      <div v-if="h.comment" class="text-muted" style="margin-top: 6px">Comment: {{ h.comment }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="credit-card">
               <div class="credit-row">
                 <div class="credit-title">Credit Requirement (per term)</div>
@@ -164,6 +228,13 @@ const coreError = ref('')
 const actionMessage = ref('')
 const actionOk = ref(true)
 const busyByCourse = ref({})
+const advisorActionsLoading = ref(false)
+const advisorActionsOk = ref(true)
+const advisorActionsMsg = ref('')
+const advisorPending = ref([])
+const advisorHistory = ref([])
+const advisorBusyId = ref('')
+const advisorRejectNotes = ref({})
 
 const setBusy = (courseCode, isBusy) => {
   busyByCourse.value = { ...busyByCourse.value, [courseCode]: isBusy }
@@ -203,6 +274,9 @@ const checkStatusAndLoad = async () => {
           fetchRegisteredCourses()
         }
       }
+      if (admissionApproved.value) {
+        fetchAdvisorActions()
+      }
     }
   } catch (e) {
     console.error(e)
@@ -239,21 +313,101 @@ const fetchCoreCourses = async () => {
 
 const submitCoreChecklist = async () => {
   submittingCore.value = true
+  actionMessage.value = ''
+  actionOk.value = true
   try {
     const res = await api.post('student_submit_core_checklist.php', {
       completed_courses: completedCore.value,
     })
     if (res.data.status === 'success') {
-      alert(`Saved. Assigned deficiencies: ${res.data.assigned_deficiencies}`)
+      actionOk.value = true
+      actionMessage.value = `Saved. Assigned deficiencies: ${res.data.assigned_deficiencies}`
       needsCoreChecklist.value = false
       await checkStatusAndLoad()
     } else {
-      alert(res.data.message || 'Failed to save checklist')
+      actionOk.value = false
+      actionMessage.value = res.data.message || 'Failed to save checklist'
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Failed to save checklist')
+    actionOk.value = false
+    actionMessage.value = e?.response?.data?.message || 'Failed to save checklist'
   } finally {
     submittingCore.value = false
+  }
+}
+
+const fetchAdvisorActions = async () => {
+  advisorActionsLoading.value = true
+  advisorActionsOk.value = true
+  advisorActionsMsg.value = ''
+  try {
+    const res = await api.get('student_list_course_actions.php')
+    if (res.data?.status === 'success') {
+      advisorPending.value = res.data.pending || []
+      advisorHistory.value = res.data.history || []
+    } else {
+      advisorActionsOk.value = false
+      advisorActionsMsg.value = res.data?.message || 'Failed to load advisor requests.'
+    }
+  } catch (e) {
+    advisorActionsOk.value = false
+    advisorActionsMsg.value = e?.response?.data?.message || 'Failed to load advisor requests.'
+  } finally {
+    advisorActionsLoading.value = false
+  }
+}
+
+const applyAdvisorAction = async (a, e) => {
+  const checked = Boolean(e?.target?.checked)
+  if (!checked) return
+  advisorBusyId.value = String(a?.id || '')
+  advisorActionsMsg.value = ''
+  advisorActionsOk.value = true
+  try {
+    const res = await api.post('student_apply_course_action.php', { action_id: a.id })
+    if (res.data?.status === 'success') {
+      actionOk.value = true
+      actionMessage.value = res.data?.message || 'Saved.'
+      await fetchRegisteredCourses()
+      await fetchAdvisorActions()
+    } else {
+      advisorActionsOk.value = false
+      advisorActionsMsg.value = res.data?.message || 'Failed.'
+      if (e?.target) e.target.checked = false
+    }
+  } catch (err) {
+    advisorActionsOk.value = false
+    advisorActionsMsg.value = err?.response?.data?.message || 'Failed.'
+    if (e?.target) e.target.checked = false
+  } finally {
+    advisorBusyId.value = ''
+  }
+}
+
+const rejectAdvisorAction = async (a) => {
+  if (!a?.id) return
+  advisorBusyId.value = String(a.id)
+  advisorActionsMsg.value = ''
+  advisorActionsOk.value = true
+  try {
+    const res = await api.post('student_reject_course_action.php', {
+      action_id: a.id,
+      comment: advisorRejectNotes.value?.[a.id] || '',
+    })
+    if (res.data?.status === 'success') {
+      actionOk.value = true
+      actionMessage.value = res.data?.message || 'Rejected.'
+      advisorRejectNotes.value = { ...advisorRejectNotes.value, [a.id]: '' }
+      await fetchAdvisorActions()
+    } else {
+      advisorActionsOk.value = false
+      advisorActionsMsg.value = res.data?.message || 'Failed.'
+    }
+  } catch (err) {
+    advisorActionsOk.value = false
+    advisorActionsMsg.value = err?.response?.data?.message || 'Failed.'
+  } finally {
+    advisorBusyId.value = ''
   }
 }
 
@@ -615,6 +769,67 @@ h2 {
   background: #fdebec;
   border: 1px solid #f5c2c7;
   color: #b4232c;
+}
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-secondary:hover {
+  background: #5a6268;
+}
+.btn-secondary:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+.advisor-card {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+  margin-bottom: 18px;
+}
+.advisor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.event-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 12px;
+  border: 1px solid #eef2f7;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+.event-item input[type='checkbox'] {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+.event-body {
+  flex: 1;
+}
+.event-title {
+  font-weight: 800;
+  color: #0f172a;
+}
+.event-meta {
+  margin-top: 4px;
+  font-size: 13px;
 }
 .text-registered {
   color: #28a745;

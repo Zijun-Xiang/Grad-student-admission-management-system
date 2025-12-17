@@ -26,6 +26,7 @@
         <div v-if="error" class="card mb-30 error-card">
           {{ error }}
         </div>
+        <div v-if="flashMsg" class="msg" :class="{ ok: flashOk, bad: !flashOk }">{{ flashMsg }}</div>
 
         <div v-if="activeSection === 'holds'" class="card mb-30">
           <h2>Active Holds</h2>
@@ -89,11 +90,11 @@
               </div>
               <div class="form-group">
                 <label>Start Date</label>
-                <input v-model="defenseForm.start_date" type="date" />
+                <EnglishDatePicker v-model="defenseForm.start_date" />
               </div>
               <div class="form-group">
                 <label>End Date</label>
-                <input v-model="defenseForm.end_date" type="date" />
+                <EnglishDatePicker v-model="defenseForm.end_date" />
               </div>
               <div class="form-group" style="align-self: end">
                 <button class="btn-approve" @click="saveDefenseWindow" :disabled="defenseBusy">
@@ -303,6 +304,7 @@ import { ref, onMounted, watch, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { apiBaseURL } from '../api/client'
 import { docTypeLabel, fileFormatLabel, statusLabel, statusPillClass } from '../utils/docDisplay'
+import EnglishDatePicker from '../components/EnglishDatePicker.vue'
 
 const router = useRouter()
 
@@ -312,6 +314,8 @@ const loading = ref(true)
 const holds = ref([])
 const pendingDocs = ref([])
 const error = ref('')
+const flashMsg = ref('')
+const flashOk = ref(true)
 
 const usersLoading = ref(false)
 const users = ref([])
@@ -349,6 +353,11 @@ const thesisSearch = ref('')
 const docUrl = (doc) => `${apiBaseURL}/download_document.php?doc_id=${doc.doc_id}`
 const holdKey = (h) => `${h.student_id}-${h.hold_type}-${h.term_code || ''}`
 
+const setFlash = (ok, msg) => {
+  flashOk.value = Boolean(ok)
+  flashMsg.value = String(msg || '')
+}
+
 const openDoc = async (doc) => {
   try {
     const res = await api.get(`download_document.php?doc_id=${doc.doc_id}`, { responseType: 'blob' })
@@ -362,11 +371,11 @@ const openDoc = async (doc) => {
     try {
       if (blob instanceof Blob) {
         const text = await blob.text()
-        alert(`Failed to open document (${status || 'network'}): ${text || 'Forbidden/Not logged in'}`)
+        setFlash(false, `Failed to open document (${status || 'network'}): ${text || 'Forbidden/Not logged in'}`)
         return
       }
     } catch {}
-    alert(`Failed to open document (${status || 'network'}).`)
+    setFlash(false, `Failed to open document (${status || 'network'}).`)
   }
 }
 
@@ -506,9 +515,9 @@ const refreshUsers = async () => {
   try {
     const res = await api.get('admin_users_list.php')
     if (res.data?.status === 'success') users.value = res.data.data || []
-    else alert(res.data?.message || 'Failed to load users')
+    else setFlash(false, res.data?.message || 'Failed to load users')
   } catch (e) {
-    alert(e?.response?.data?.message || 'Failed to load users')
+    setFlash(false, e?.response?.data?.message || 'Failed to load users')
   } finally {
     usersLoading.value = false
   }
@@ -530,18 +539,19 @@ const fetchMajors = async () => {
 
 const createUser = async () => {
   if (!newUser.value.username || !newUser.value.password) {
-    return alert('Username and password are required.')
+    setFlash(false, 'Username and password are required.')
+    return
   }
   if (newUser.value.password.length < 6) {
-    return alert('Password must be at least 6 characters.')
+    setFlash(false, 'Password must be at least 6 characters.')
+    return
   }
-  const ok = confirm(`Create ${newUser.value.role} user "${newUser.value.username}"?`)
-  if (!ok) return
 
   usersLoading.value = true
   try {
     const res = await api.post('admin_users_create.php', newUser.value)
     if (res.data?.status === 'success') {
+      setFlash(true, res.data?.message || 'User created.')
       newUser.value.entry_date = todayISO()
       newUser.value.username = ''
       newUser.value.password = ''
@@ -555,31 +565,33 @@ const createUser = async () => {
       await refreshUsers()
       await fetchDashboard()
     } else {
-      alert(res.data?.message || 'Create failed')
+      setFlash(false, res.data?.message || 'Create failed')
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Create failed')
+    setFlash(false, e?.response?.data?.message || 'Create failed')
   } finally {
     usersLoading.value = false
   }
 }
 
 const deleteUser = async (u) => {
-  if (u.role === 'admin') return alert('Deleting admin is disabled.')
-  const ok = confirm(`Delete user "${u.username}" (#${u.user_id})? This will also delete related records.`)
-  if (!ok) return
+  if (u.role === 'admin') {
+    setFlash(false, 'Deleting admin is disabled.')
+    return
+  }
 
   usersLoading.value = true
   try {
     const res = await api.post('admin_users_delete.php', { user_id: u.user_id })
     if (res.data?.status === 'success') {
+      setFlash(true, res.data?.message || 'User deleted.')
       await refreshUsers()
       await fetchDashboard()
     } else {
-      alert(res.data?.message || 'Delete failed')
+      setFlash(false, res.data?.message || 'Delete failed')
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Delete failed')
+    setFlash(false, e?.response?.data?.message || 'Delete failed')
   } finally {
     usersLoading.value = false
   }
@@ -647,10 +659,7 @@ const saveEdit = async () => {
 }
 
 const reviewDoc = async (doc, action) => {
-  const ok = confirm(`${action.toUpperCase()} this document? (${doc.doc_type} · student ${doc.student_id})`)
-  if (!ok) return
-
-  const comment = action === 'reject' ? prompt('Reason (optional):') : 'Approved'
+  const comment = action === 'reject' ? 'Rejected' : 'Approved'
   try {
     const res = await api.post('admin_review_document.php', {
       doc_id: doc.doc_id,
@@ -658,21 +667,18 @@ const reviewDoc = async (doc, action) => {
       comment,
     })
     if (res.data?.status === 'success') {
-      alert(res.data?.message || 'Saved.')
+      const extra = res.data?.registrar_code ? ` Registrar code: ${res.data.registrar_code}` : ''
+      setFlash(true, `${res.data?.message || 'Saved.'}${extra}`)
       await fetchDashboard()
     } else {
-      alert(res.data?.message || 'Action failed')
+      setFlash(false, res.data?.message || 'Action failed')
     }
   } catch (e) {
-    const msg = e?.response?.data?.message || 'Network error'
-    alert(msg)
+    setFlash(false, e?.response?.data?.message || 'Network error')
   }
 }
 
 const liftHold = async (h) => {
-  const ok = confirm(`Lift hold "${h.hold_type}" for student ${h.student_id}?`)
-  if (!ok) return
-
   try {
     const res = await api.post('admin_lift_hold.php', {
       student_id: h.student_id,
@@ -680,16 +686,14 @@ const liftHold = async (h) => {
       term_code: h.term_code || null,
     })
     if (res.data?.status === 'success') {
-      if (res.data.registrar_code) {
-        alert(`Registrar code generated:\n${res.data.registrar_code}`)
-      }
+      const extra = res.data?.registrar_code ? ` Registrar code: ${res.data.registrar_code}` : ''
+      setFlash(true, `${res.data?.message || 'Hold lifted.'}${extra}`)
       await fetchDashboard()
     } else {
-      alert(res.data?.message || 'Lift failed')
+      setFlash(false, res.data?.message || 'Lift failed')
     }
   } catch (e) {
-    const msg = e?.response?.data?.message || 'Network error'
-    alert(msg)
+    setFlash(false, e?.response?.data?.message || 'Network error')
   }
 }
 

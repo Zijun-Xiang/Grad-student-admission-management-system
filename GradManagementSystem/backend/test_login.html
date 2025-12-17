@@ -18,7 +18,7 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            // 发送请求给刚才写的 PHP
+            // Send request to the PHP API endpoint
             const response = await fetch('http://localhost:8080/api/login.php', {
                 method: 'POST',
                 credentials: 'include',

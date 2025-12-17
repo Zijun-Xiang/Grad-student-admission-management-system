@@ -18,6 +18,7 @@ if ($professorId === '') {
 $studentId = effective_student_id_for_request($user, isset($data['student_id']) ? (string)$data['student_id'] : null);
 
 // Term gating: Major Professor selection is unlocked starting Term 2.
+$termNumber = null;
 try {
     $currentTerm = grad_current_term_code();
     $entryTerm = '';
@@ -54,11 +55,41 @@ try {
 
     if ($entryTerm === '') $entryTerm = $currentTerm;
 
-    if (grad_term_number($entryTerm, $currentTerm) < 2) {
+    $termNumber = grad_term_number($entryTerm, $currentTerm);
+
+    if ($termNumber < 2) {
         send_json(['status' => 'error', 'message' => 'Major Professor selection is available starting Term 2.'], 403);
     }
 } catch (Exception $e) {
     // If term data is unavailable, default to allowing.
+}
+
+// Additional gating for Term 2: student must submit Major Professor Form before selecting an advisor.
+if ($termNumber === 2) {
+    try {
+        $stmtDoc = $pdo->prepare(
+            "SELECT status
+             FROM documents
+             WHERE student_id = :sid AND doc_type = 'major_professor_form'
+             ORDER BY upload_date DESC, doc_id DESC
+             LIMIT 1"
+        );
+        $stmtDoc->bindParam(':sid', $studentId);
+        $stmtDoc->execute();
+        $st = $stmtDoc->fetchColumn();
+        $st = $st === false || $st === null ? '' : strtolower(trim((string)$st));
+
+        // Require at least a submitted, non-rejected form.
+        if ($st === '' || $st === 'rejected') {
+            send_json([
+                'status' => 'error',
+                'message' => 'Please upload the Major Professor Form in Documents before selecting an advisor (Term 2 requirement).',
+            ], 403);
+        }
+    } catch (Exception $e) {
+        // If documents table/schema isn't available, fail closed to avoid bypassing the Term 2 requirement.
+        send_json(['status' => 'error', 'message' => 'Failed to verify Major Professor Form submission.'], 500);
+    }
 }
 
 function default_value_for_column(array $col)

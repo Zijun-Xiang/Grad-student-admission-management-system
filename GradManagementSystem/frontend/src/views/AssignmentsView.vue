@@ -27,6 +27,7 @@
         <div class="card">
           <h2>Assignments</h2>
 
+          <div v-if="actionMsg" class="msg" :class="{ ok: actionOk, bad: !actionOk }">{{ actionMsg }}</div>
           <div v-if="error" class="msg bad">{{ error }}</div>
           <div v-if="loading" class="loading-text">Loading...</div>
           <div v-else-if="assignments.length === 0" class="empty-state">No assignments.</div>
@@ -82,7 +83,7 @@
                     (Your grade: {{ a.grade }})
                   </span>
                 </div>
-                <input type="file" @change="(e) => onPickFile(a.id, e)" />
+                <FilePicker @change="(f) => onPickFile(a.id, f)" />
                 <button class="btn-primary" @click="submit(a)" :disabled="!pickedFiles[a.id] || busyId === a.id">
                   {{ busyId === a.id ? 'Uploading...' : a.submission_id ? 'Resubmit' : 'Submit' }}
                 </button>
@@ -127,12 +128,15 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import FilePicker from '../components/FilePicker.vue'
 
 const router = useRouter()
 const user = ref({})
 const loading = ref(true)
 const assignments = ref([])
 const error = ref('')
+const actionMsg = ref('')
+const actionOk = ref(true)
 const busyId = ref(0)
 const pickedFiles = ref({})
 const registeredCourses = ref([])
@@ -203,8 +207,8 @@ const clearFilters = () => {
   filters.value = { course_code: '', faculty: '' }
 }
 
-const onPickFile = (assignmentId, e) => {
-  const f = e?.target?.files?.[0] ?? null
+const onPickFile = (assignmentId, arg) => {
+  const f = arg && typeof File !== 'undefined' && arg instanceof File ? arg : arg?.target?.files?.[0] ?? null
   pickedFiles.value = { ...pickedFiles.value, [assignmentId]: f }
 }
 
@@ -239,19 +243,24 @@ const submit = async (a) => {
   const file = pickedFiles.value?.[a.id]
   if (!file) return
   busyId.value = a.id
+  actionMsg.value = ''
   try {
     const form = new FormData()
     form.append('assignment_id', String(a.id))
     form.append('file', file)
     const res = await api.post('student_submit_assignment.php', form)
     if (res.data?.status === 'success') {
+      actionOk.value = true
+      actionMsg.value = res.data?.message || 'Submitted.'
       pickedFiles.value = { ...pickedFiles.value, [a.id]: null }
       await fetchAssignments()
     } else {
-      alert(res.data?.message || 'Submit failed')
+      actionOk.value = false
+      actionMsg.value = res.data?.message || 'Submit failed'
     }
   } catch (e) {
-    alert(e?.response?.data?.message || 'Submit failed')
+    actionOk.value = false
+    actionMsg.value = e?.response?.data?.message || 'Submit failed'
   } finally {
     busyId.value = 0
   }
@@ -414,6 +423,15 @@ h2 {
   gap: 10px;
   align-items: center;
 }
+.submit-box :deep(.file-picker) {
+  width: 100%;
+}
+.submit-box :deep(.file-btn) {
+  padding: 8px 10px;
+}
+.submit-box :deep(.file-name) {
+  font-size: 13px;
+}
 .btn-primary {
   background: #003366;
   color: white;
@@ -440,6 +458,11 @@ h2 {
   border-radius: 8px;
   margin: 0 0 16px;
   font-weight: 600;
+}
+.msg.ok {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
 }
 .msg.bad {
   background: #fdebec;
