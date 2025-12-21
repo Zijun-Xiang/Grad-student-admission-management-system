@@ -34,6 +34,20 @@ Quick Start
      - backend/sql/14_assignment_reads.sql
      - backend/sql/15_advisee_course_actions.sql
 
+How to use (XAMPP setup)
+1) Open XAMPP and start Apache.
+2) Click Apache config (httpd.conf) and update:
+   - DocumentRoot "D:\GitHub\Grad-student-admission-management-system\GradManagementSystem\backend"
+   - <Directory "D:\GitHub\Grad-student-admission-management-system\GradManagementSystem\backend">
+3) In MySQL Workbench, run:
+   - USE grad_system;
+   - Then execute the SQL files from backend/sql.
+4) Open the "GradManagementSystem" folder in VS Code.
+5) Install dependencies and start the frontend:
+   - cd frontend
+   - npm install
+   - npm run dev
+
 2) Backend (PHP)
    - Configure DB connection (environment variables are preferred):
      - DB_HOST (default: 127.0.0.1)
